@@ -1,0 +1,178 @@
+body {
+  font-family: 'Roboto';
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Roboto';
+  font-weight: 800 !important;
+}
+
+.btn-xl {
+  text-transform: uppercase;
+  padding: 1.5rem 3rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.1rem;
+}
+
+.bg-black {
+  background-color: #1F1C2C; !important;
+}
+
+.rounded-pill {
+  border-radius: 5rem;
+}
+
+.navbar-custom {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: #1F1C2C;
+}
+
+.navbar-custom .navbar-brand {
+  text-transform: uppercase;
+  font-size: 1rem;
+  letter-spacing: 0.1rem;
+  font-weight: 700;
+}
+
+.navbar-custom .navbar-brand:hover {
+    color: #ff4757
+}
+
+.navbar-custom .navbar-nav .nav-item .nav-link {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1rem;
+}
+
+header.masthead {
+  position: relative;
+  overflow: hidden;
+  padding-top: calc(7rem + 72px);
+  padding-bottom: 7rem;
+  background: #f53b57;  /* fallback for old browsers */
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: scroll;
+  background-size: cover;
+}
+
+header.masthead .masthead-content {
+  z-index: 1;
+  position: relative;
+}
+
+header.masthead .masthead-content .masthead-heading {
+  font-size: 4rem;
+}
+
+header.masthead .masthead-content .masthead-subheading {
+  font-size: 2rem;
+}
+
+header.masthead .bg-circle {
+  z-index: 0;
+  position: absolute;
+  border-radius: 100%;
+  animation: wobble 15s ease-in-out alternate infinite;
+}
+
+@keyframes wobble {
+  0% {
+    transform:rotate(0deg);
+    border-radius: 750px 550px 350px 750px /
+                   350px 1000px 550px 450px;
+  }
+  100% {
+    transform:rotate(40deg);
+    border-radius: 750px 250px 750px 250px /
+                   250px 750px 250px 750px;
+  }
+}
+
+header.masthead .bg-circle-1 {
+  height: 90rem;
+  width: 90rem;
+  bottom: -55rem;
+  left: -55rem;
+    background: #05c46b;
+}
+
+header.masthead .bg-circle-2 {
+  height: 50rem;
+  width: 50rem;
+  top: -25rem;
+  right: -25rem;
+    background: #0fbcf9;
+}
+
+header.masthead .bg-circle-3 {
+  height: 20rem;
+  width: 20rem;
+  bottom: -10rem;
+  right: 5%;
+    background: #ffd32a;
+}
+
+header.masthead .bg-circle-4 {
+  height: 30rem;
+  width: 30rem;
+  top: -5rem;
+  right: 35%;
+    background: #3c40c6;
+}
+
+@media (min-width: 992px) {
+  header.masthead {
+    padding-top: calc(10rem + 55px);
+    padding-bottom: 10rem;
+  }
+  header.masthead .masthead-content .masthead-heading {
+    font-size: 4rem;
+  }
+  header.masthead .masthead-content .masthead-subheading {
+    font-size: 2rem;
+  }
+}
+
+.bg-primary {
+  background: #ff4757;
+}
+
+.btn-primary {
+  background: #ff4757;
+}
+
+.btn-primary:active, .btn-primary:focus, .btn-primary:hover {
+  background: #f53b57;  /* fallback for old browsers */
+}
+
+.btn-primary:focus {
+ background: #f53b57;  /* fallback for old browsers */
+}
+
+.btn-secondary {
+  background: #ff4757;
+}
+
+.btn-secondary:active, .btn-secondary:focus, .btn-secondary:hover {
+  background: #f53b57;  /* fallback for old browsers */
+}
+
+.btn-secondary:focus {
+  background: #f53b57;  /* fallback for old browsers */
+}
+
+.sticky {
+    position: sticky;
+    position: -webkit-sticky;
+    top: 0;
+    z-index: 1337;
+}
