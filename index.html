@@ -19,7 +19,7 @@
 
   <body>
 
-    <header class="masthead text-center text-white">
+    <header data-target="color-trigger" class="masthead text-center text-white">
       <div class="masthead-content">
         <div class="container">
           <h1 class="masthead-heading mb-0">My Playground.</h1>
@@ -34,13 +34,13 @@
     </header>
 
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky">
+    <nav data-target="color-target" class="navbar navbar-expand-lg navbar-dark navbar-custom sticky color-target round-bottom">
       <div class="container">
         <a class="navbar-brand color-animation" href="#">philippmatthes.github.io</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon border-animation"></span>
         </button>
-        <div class="collapse navbar-collapse" id="navbarResponsive">
+        <div class="collapse navbar-collapse rounded-bottom" id="navbarResponsive">
           <ul class="navbar-nav ml-auto">
             <li class="nav-item">
               <a class="nav-link color-animation" href="https://philippmatth.es">Homepage</a>
@@ -54,7 +54,7 @@
       <div class="bg-yellow small-bubble centered"></div>
       <div class="bg-yellow small-bubble centered"></div>
       <div class="bg-yellow small-bubble centered"></div>
-      <div class="bg-yellow border-2 margin-bottom-2">
+      <div data-target="color-trigger" class="bg-yellow border-2 margin-bottom-2">
         <div class="container border-2 text-white padding-2 text-center">
             <p>Last update: Jan-11-2019</p>
             <h1>Fun with WebGL</h1>
@@ -76,6 +76,25 @@
       <div class="bg-yellow small-bubble centered"></div>
     </section>
 
+    <section>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div data-target="color-trigger" class="bg-blue-dark border-2 margin-bottom-2">
+        <div class="container border-2 text-white padding-2 text-center">
+            <h1>More posts coming soon!</h1>
+            <p>
+                Stay tuned for more posts. Meanwhile, visit my Homepage!
+            </p>
+        </div>
+        <a href="https://philippmatth.es"
+           class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered">Homepage</a>
+      </div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+    </section>
+
     <!-- Footer -->
     <footer class="py-5 bg-black">
         <p class="m-0 text-center text-white small">
@@ -89,6 +108,8 @@
 
     <script src="assets/js/jquery-3.3.1.min.js"></script>
     <script src="assets/js/bootstrap.min.js"></script>
+
+    <script src="assets/js/fun-with-colors.js"></script>
 
   </body>
 

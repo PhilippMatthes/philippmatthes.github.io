@@ -278,3 +278,13 @@ section {
     height: 20px;
     width: 20px;
 }
+
+.color-target {
+    transition: background-color 1s ease;
+}
+
+.round-bottom {
+    border-radius: 0 0 1rem 1rem;
+    -webkit-border-radius: 0 0 1rem 1rem;
+    -moz-border-radius: 0 0 1rem 1rem;
+}
