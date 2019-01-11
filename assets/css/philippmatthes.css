@@ -43,7 +43,7 @@ h6 {
 }
 
 .navbar-custom .navbar-brand:hover {
-    color: #ff4757
+    color: #ff4757;
 }
 
 .navbar-custom .navbar-nav .nav-item .nav-link {
@@ -98,12 +98,78 @@ header.masthead .bg-circle {
   }
 }
 
+.bg-green {
+    background: #05c46b;
+}
+
+.bg-yellow {
+    background: #ffd32a;
+}
+
+.bg-blue-light {
+    background: #0fbcf9;
+}
+
+.bg-blue-dark {
+    background: #3c40c6;
+}
+
+
+.border-animation {
+    border-width: 0;
+    transition: border-width 0.1s;
+}
+
+.border-animation:hover {
+    border-width: 5px;
+    animation: border-animation 3s linear alternate infinite;
+}
+
+@keyframes border-animation {
+    0% {
+        border-color: #05c46b;
+    }
+    25% {
+        border-color: #ffd32a;
+    }
+    50% {
+        border-color: #0fbcf9;
+    }
+    75% {
+        border-color: #3c40c6;
+    }
+    100% {
+        border-color: #ff4757;
+    }
+}
+
+.color-animation:hover {
+    animation: color-animation 3s linear alternate infinite;
+}
+
+@keyframes color-animation {
+    0% {
+        color: #05c46b;
+    }
+    25% {
+        color: #ffd32a;
+    }
+    50% {
+        color: #0fbcf9;
+    }
+    75% {
+        color: #3c40c6;
+    }
+    100% {
+        color: #ff4757;
+    }
+}
+
 header.masthead .bg-circle-1 {
   height: 90rem;
   width: 90rem;
   bottom: -55rem;
   left: -55rem;
-    background: #05c46b;
 }
 
 header.masthead .bg-circle-2 {
@@ -111,7 +177,6 @@ header.masthead .bg-circle-2 {
   width: 50rem;
   top: -25rem;
   right: -25rem;
-    background: #0fbcf9;
 }
 
 header.masthead .bg-circle-3 {
@@ -119,7 +184,6 @@ header.masthead .bg-circle-3 {
   width: 20rem;
   bottom: -10rem;
   right: 5%;
-    background: #ffd32a;
 }
 
 header.masthead .bg-circle-4 {
@@ -127,7 +191,6 @@ header.masthead .bg-circle-4 {
   width: 30rem;
   top: -5rem;
   right: 35%;
-    background: #3c40c6;
 }
 
 @media (min-width: 992px) {
@@ -176,4 +239,42 @@ header.masthead .bg-circle-4 {
     position: -webkit-sticky;
     top: 0;
     z-index: 1337;
+}
+
+.border-2 {
+    -webkit-border-radius: 2rem;
+    -moz-border-radius: 2rem;
+    border-radius: 2rem;
+}
+
+.preloading-template {
+    width: 100%;
+    height: 70%;
+}
+
+section {
+    padding: 4rem;
+}
+
+.padding-2 {
+  padding: 2rem;
+}
+
+.margin-bottom-2 {
+  margin-bottom: 2rem;
+}
+
+.centered {
+    position: relative;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.small-bubble {
+    padding: 10px;
+    margin: 10px;
+    border-radius: 20px;
+    height: 20px;
+    width: 20px;
 }
