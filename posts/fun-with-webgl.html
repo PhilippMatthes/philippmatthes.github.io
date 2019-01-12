@@ -9,26 +9,24 @@
 <script src="../assets/js/fun-with-colors.js"></script>
 <script src="../assets/js/three.min.js"></script>
 <script src="../assets/js/OrbitControls.js"></script>
+<script src="../assets/js/OBJLoader.js"></script>
 
 <script id="vs" type="webgl">
-	void main()	{
-		gl_Position = vec4(position, 1.0);
-	}
+	void main() {
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
 </script>
 <script id="fs" type="webgl">
-	void main()	{
-		gl_FragColor = vec4(1.0);
-	}
+	void main() {
+      gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+    }
 </script>
 
 <script>
 
 var scene, renderer, camera;
-var cube;
+var mesh;
 var controls;
-
-init();
-animate();
 
 function init() {
     renderer = new THREE.WebGLRenderer( {antialias:true} );
@@ -39,16 +37,30 @@ function init() {
 
     scene = new THREE.Scene();
 
-    var cubeGeometry = new THREE.BoxGeometry (10,10,10);
-    var cubeMaterial = new THREE.MeshBasicMaterial ({color: 0x1ec876});
-    cube = new THREE.Mesh (cubeGeometry, cubeMaterial);
+    var material = new THREE.ShaderMaterial({
+        vertexShader:   $("#vs").text(),
+        fragmentShader: $("#fs").text()
+    });
 
-    cube.position.set (0, 0, 0);
-    scene.add (cube);
+    var loader = new THREE.OBJLoader();
+
+    loader.load(
+        '../assets/models/bunny.obj',
+        function (object) {
+            mesh = object;
+            scene.add(object);
+        },
+        function (xhr) {
+            console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+        },
+        function (error) {
+            console.log( 'An error happened' );
+        }
+    );
 
     camera = new THREE.PerspectiveCamera (45, width/height, 1, 10000);
     camera.position.y = 160;
-    camera.position.z = 400;
+    camera.position.z = 200;
     camera.lookAt (new THREE.Vector3(0,0,0));
 
     controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -56,10 +68,6 @@ function init() {
     controls.dampingFactor = 0.25;
     controls.enableZoom = true;
     controls.autoRotate = true;
-    
-    var gridXZ = new THREE.GridHelper(100, 10);
-    gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
-    scene.add(gridXZ);
 
 }
 
@@ -74,6 +82,9 @@ window.addEventListener("resize", function() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }, false);
+
+init();
+animate();
 
 
 </script>
