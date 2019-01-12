@@ -16,13 +16,20 @@
 <script src="../assets/js/SepiaShader.js"></script>
 
 <script id="vs" type="webgl">
+    varying vec3 vReflection;
+
 	void main() {
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+	    vReflection = reflect(position.xyz - cameraPosition.xyz, normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
 </script>
 <script id="fs" type="webgl">
+    uniform samplerCube tCube;
+
+    varying vec3 vReflection;
+
 	void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        gl_FragColor = textureCube(tCube, vReflection);
     }
 </script>
 
@@ -47,26 +54,23 @@ function init() {
 
     scene = new THREE.Scene();
 
-    var imagePrefix = "../assets/img/skybox/iceflow_";
-    var directions  = ["bk", "dn", "ft", "lf", "rt", "up"];
-    var imageSuffix = ".jpg";
+    var cubeLoader = new THREE.CubeTextureLoader()
+        .setPath( 'https://philippmatthes.github.io/assets/img/skybox/' )
+        .load([
+            "iceflow_ft.jpg",
+            "iceflow_bk.jpg",
+            "iceflow_up.jpg",
+            "iceflow_dn.jpg",
+            "iceflow_rt.jpg",
+            "iceflow_lf.jpg"]
+        );
 
-    var materialArray = [];
-    const loader = new THREE.TextureLoader();
-    for (var i = 0; i < 6; i++) {
-        materialArray.push(new THREE.MeshBasicMaterial({
-            map: loader.load(imagePrefix + directions[i] + imageSuffix),
-            side: THREE.BackSide
-        }));
-    }
-
-    var skyGeometry = new THREE.CubeGeometry( 500, 500, 500 );
-    var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
-    var skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
-    skyBox.rotation.x += Math.PI / 2;
-    scene.add( skyBox );
+    scene.background = cubeLoader;
 
     var material = new THREE.ShaderMaterial({
+        uniforms: {
+            "tCube": cubeLoader
+        },
         vertexShader:   $("#vs").text(),
         fragmentShader: $("#fs").text()
     });
@@ -82,8 +86,7 @@ function init() {
     scene.add(mesh);
 
     camera = new THREE.PerspectiveCamera (45, width/height, 1, 10000);
-    camera.position.y = 20;
-    camera.position.z = 20;
+    camera.position.y = -20;
     camera.lookAt (new THREE.Vector3(0,0,0));
 
     controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -94,10 +97,13 @@ function init() {
 
     composer = new THREE.EffectComposer(renderer);
     var renderPass = new THREE.RenderPass(scene, camera);
+    renderPass.renderToScreen = true;
     composer.addPass(renderPass);
+    /*
     var shaderPass = new THREE.ShaderPass(THREE.SepiaShader);
     shaderPass.renderToScreen = true;
     composer.addPass(shaderPass);
+    */
 
 }
 
