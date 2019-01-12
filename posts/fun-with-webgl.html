@@ -86,7 +86,7 @@ function init() {
     scene.add(mesh);
 
     camera = new THREE.PerspectiveCamera (45, width/height, 1, 10000);
-    camera.position.y = -20;
+    camera.position.z = -20;
     camera.lookAt (new THREE.Vector3(0,0,0));
 
     controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -94,6 +94,7 @@ function init() {
     controls.dampingFactor = 0.25;
     controls.enableZoom = true;
     controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.3;
 
     composer = new THREE.EffectComposer(renderer);
     var renderPass = new THREE.RenderPass(scene, camera);
