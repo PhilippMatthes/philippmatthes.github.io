@@ -1,7 +1,7 @@
 <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
 <link href="../assets/css/philippmatthes.css" rel="stylesheet">
 
-<body style="width: 100%; height: 100%;"></body>
+<body style="width: 100%; height: 100%" class="bg-black"></body>
 
 <script src="../assets/js/jquery-3.3.1.min.js"></script>
 <script src="../assets/js/bootstrap.min.js"></script>
@@ -9,7 +9,11 @@
 <script src="../assets/js/fun-with-colors.js"></script>
 <script src="../assets/js/three.min.js"></script>
 <script src="../assets/js/OrbitControls.js"></script>
-<script src="../assets/js/OBJLoader.js"></script>
+<script src="../assets/js/EffectComposer.js"></script>
+<script src="../assets/js/CopyShader.js"></script>
+<script src="../assets/js/ShaderPass.js"></script>
+<script src="../assets/js/RenderPass.js"></script>
+<script src="../assets/js/SepiaShader.js"></script>
 
 <script id="vs" type="webgl">
 	void main() {
@@ -18,7 +22,7 @@
 </script>
 <script id="fs" type="webgl">
 	void main() {
-      gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
 </script>
 
@@ -28,8 +32,14 @@ var scene, renderer, camera;
 var mesh;
 var controls;
 
+$(document).ready(function() {
+    init();
+    animate();
+});
+
 function init() {
-    renderer = new THREE.WebGLRenderer( {antialias:true} );
+    renderer = new THREE.WebGLRenderer( {antialias:true, alpha: true} );
+    renderer.setClearColor( 0xffffff, 0 );
     var width = window.innerWidth;
     var height = window.innerHeight;
     renderer.setSize (width, height);
@@ -37,30 +47,43 @@ function init() {
 
     scene = new THREE.Scene();
 
+    var imagePrefix = "../assets/img/skybox/iceflow_";
+    var directions  = ["bk", "dn", "ft", "lf", "rt", "up"];
+    var imageSuffix = ".jpg";
+
+    var materialArray = [];
+    const loader = new THREE.TextureLoader();
+    for (var i = 0; i < 6; i++) {
+        materialArray.push(new THREE.MeshBasicMaterial({
+            map: loader.load(imagePrefix + directions[i] + imageSuffix),
+            side: THREE.BackSide
+        }));
+    }
+
+    var skyGeometry = new THREE.CubeGeometry( 500, 500, 500 );
+    var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
+    var skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+    skyBox.rotation.x += Math.PI / 2;
+    scene.add( skyBox );
+
     var material = new THREE.ShaderMaterial({
         vertexShader:   $("#vs").text(),
         fragmentShader: $("#fs").text()
     });
 
-    var loader = new THREE.OBJLoader();
-
-    loader.load(
-        '../assets/models/bunny.obj',
-        function (object) {
-            mesh = object;
-            scene.add(object);
-        },
-        function (xhr) {
-            console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-        },
-        function (error) {
-            console.log( 'An error happened' );
-        }
-    );
+    const radius = 3.5;
+    const tube = 1.5;
+    const radialSegments = 8;
+    const tubularSegments = 64;
+    const p = 2;
+    const q = 3;
+    const geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
+    mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 
     camera = new THREE.PerspectiveCamera (45, width/height, 1, 10000);
-    camera.position.y = 160;
-    camera.position.z = 200;
+    camera.position.y = 20;
+    camera.position.z = 20;
     camera.lookAt (new THREE.Vector3(0,0,0));
 
     controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -69,13 +92,22 @@ function init() {
     controls.enableZoom = true;
     controls.autoRotate = true;
 
+    composer = new THREE.EffectComposer(renderer);
+    var renderPass = new THREE.RenderPass(scene, camera);
+    composer.addPass(renderPass);
+    var shaderPass = new THREE.ShaderPass(THREE.SepiaShader);
+    shaderPass.renderToScreen = true;
+    composer.addPass(shaderPass);
+
 }
+
 
 function animate() {
     controls.update();
+    composer.render();
     requestAnimationFrame ( animate );
-    renderer.render (scene, camera);
 }
+
 
 window.addEventListener("resize", function() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -83,8 +115,7 @@ window.addEventListener("resize", function() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }, false);
 
-init();
-animate();
+
 
 
 </script>
