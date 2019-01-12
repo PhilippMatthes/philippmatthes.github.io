@@ -57,12 +57,12 @@ function init() {
     var cubeLoader = new THREE.CubeTextureLoader()
         .setPath( 'https://philippmatthes.github.io/assets/img/skybox/' )
         .load([
-            "negx.jpg",
             "posx.jpg",
-            "negy.jpg",
+            "negx.jpg",
             "posy.jpg",
-            "negz.jpg",
-            "posz.jpg"]
+            "negy.jpg",
+            "posz.jpg",
+            "negz.jpg"]
         );
 
     scene.background = cubeLoader;
