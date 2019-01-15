@@ -98,8 +98,11 @@
 	    float depthFront = texture2D(tDepthFront, texturePosition).x;
 	    float depthBack = texture2D(tDepthBack, texturePosition).x;
 	    vec4 normalsBack = texture2D(tNormalsBack, texturePosition);
-	    float depthDiff = clamp(1.0 - (depthFront - depthBack) * 5.0, 0.0, 1.0);
-        gl_FragColor = mix(vec4(0.0), normalsBack, depthDiff);
+	    float depthDiff = clamp((depthFront - depthBack) * 3.0, 0.0, 1.0);
+
+	    vec4 color = mix(refraction, reflection, depthDiff);
+	    color = mix(color, normalsBack, 0.3);
+        gl_FragColor = color;
     }
 </script>
 
@@ -153,7 +156,7 @@ function init() {
 
     var material = new THREE.ShaderMaterial({
         uniforms: {
-            "tCube": cubeLoader,
+            "tCube": { value: cubeLoader },
             "tDepthFront": { value: renderTargetDepthFront.texture },
             "tDepthBack": { value: renderTargetDepthBack.texture },
             "tNormalsBack": { value: renderTargetNormalsBack.texture },
