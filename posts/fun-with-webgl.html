@@ -16,7 +16,28 @@
 <script src="../assets/js/CopyShader.js"></script>
 <script src="../assets/js/ShaderPass.js"></script>
 <script src="../assets/js/RenderPass.js"></script>
-<script src="../assets/js/SepiaShader.js"></script>
+
+
+<script id="vs-depth" type="webgl">
+    vec4 calculatePosition() {
+        return projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+
+    void main() {
+        gl_Position = calculatePosition();
+    }
+</script>
+<script id="fs-depth" type="webgl">
+    float calculateDepth() {
+        return gl_FragCoord.z;
+    }
+
+    void main() {
+        float depth = calculateDepth();
+        gl_FragColor = vec4(vec3(depth), 1.0);
+    }
+</script>
+
 
 <script id="vs" type="webgl">
     /*
@@ -62,6 +83,8 @@
 </script>
 <script id="fs" type="webgl">
     uniform samplerCube tCube;
+    uniform sampler2D tDepthFront;
+    uniform sampler2D tDepthBack;
 
     varying vec3 vReflection;
     varying vec3 vRefraction;
@@ -69,15 +92,20 @@
 	void main() {
 	    vec4 reflection = textureCube(tCube, vReflection);
 	    vec4 refraction = textureCube(tCube, vRefraction);
-        gl_FragColor = mix(reflection, refraction, 0.6);
+	    vec4 depthFront = texture2D(tDepthFront, gl_FragCoord.xy);
+	    vec4 depthBack = texture2D(tDepthBack, gl_FragCoord.xy);
+        gl_FragColor = depthFront;
     }
 </script>
 
 <script>
 
-var scene, renderer, camera;
-var mesh;
+var scene, bufferSceneDepthFront, bufferSceneDepthBack;
+var renderer;
+var camera;
+var mesh, meshBack, meshFront;
 var controls;
+var renderTargetDepthFront, renderTargetDepthBack;
 
 $(document).ready(function() {
     init();
@@ -85,14 +113,23 @@ $(document).ready(function() {
 });
 
 function init() {
-    renderer = new THREE.WebGLRenderer( {antialias:true, alpha: true} );
-    renderer.setClearColor( 0xffffff, 0 );
     var width = window.innerWidth;
     var height = window.innerHeight;
+
+    renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: false
+    });
+    renderer.setClearColor( 0xffffff, 0 );
     renderer.setSize (width, height);
     document.body.appendChild (renderer.domElement);
 
+    renderTargetDepthBack = new THREE.WebGLRenderTarget(width, height);
+    renderTargetDepthFront = new THREE.WebGLRenderTarget(width, height);
+
     scene = new THREE.Scene();
+    bufferSceneDepthFront = new THREE.Scene();
+    bufferSceneDepthBack = new THREE.Scene();
 
     var cubeLoader = new THREE.CubeTextureLoader()
         .setPath( 'https://philippmatthes.github.io/assets/img/skybox/' )
@@ -109,10 +146,24 @@ function init() {
 
     var material = new THREE.ShaderMaterial({
         uniforms: {
-            "tCube": cubeLoader
+            "tCube": cubeLoader,
+            "tDepthFront": { type: "t", value: renderTargetDepthFront.texture },
+            "tDepthBack": { type: "t", value: renderTargetDepthBack.texture }
         },
         vertexShader:   $("#vs").text(),
         fragmentShader: $("#fs").text()
+    });
+
+    var backDepthMaterial = new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        vertexShader: $("#vs-depth").text(),
+        fragmentShader: $("#fs-depth").text()
+    });
+
+    var frontDepthMaterial = new THREE.ShaderMaterial({
+        side: THREE.FrontSide,
+        vertexShader: $("#vs-depth").text(),
+        fragmentShader: $("#fs-depth").text()
     });
 
     const radius = 3.5;
@@ -122,10 +173,16 @@ function init() {
     const p = 2;
     const q = 3;
     const geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
 
-    camera = new THREE.PerspectiveCamera (45, width/height, 1, 10000);
+    mesh = new THREE.Mesh(geometry, material);
+    meshBack = new THREE.Mesh(geometry, backDepthMaterial);
+    meshFront = new THREE.Mesh(geometry, frontDepthMaterial);
+
+    scene.add(mesh);
+    bufferSceneDepthBack.add(meshBack);
+    bufferSceneDepthFront.add(meshFront);
+
+    camera = new THREE.PerspectiveCamera (45, width/height, 1, 50);
     camera.position.z = -20;
     camera.lookAt (new THREE.Vector3(0,0,0));
 
@@ -135,24 +192,15 @@ function init() {
     controls.enableZoom = true;
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.3;
-
-    composer = new THREE.EffectComposer(renderer);
-    var renderPass = new THREE.RenderPass(scene, camera);
-    renderPass.renderToScreen = true;
-    composer.addPass(renderPass);
-    /*
-    var shaderPass = new THREE.ShaderPass(THREE.SepiaShader);
-    shaderPass.renderToScreen = true;
-    composer.addPass(shaderPass);
-    */
-
 }
 
 
 function animate() {
     controls.update();
-    composer.render();
-    requestAnimationFrame ( animate );
+    renderer.render(bufferSceneDepthBack, camera, renderTargetDepthBack, true);
+    renderer.render(bufferSceneDepthFront, camera, renderTargetDepthFront, true);
+    renderer.render(scene, camera);
+    requestAnimationFrame (animate);
 }
 
 
