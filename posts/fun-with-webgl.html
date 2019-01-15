@@ -33,8 +33,7 @@
     }
 
     void main() {
-        float depth = calculateDepth();
-        gl_FragColor = vec4(vec3(depth), 1.0);
+        gl_FragColor = vec4(vec3(calculateDepth()), 1.0);
     }
 </script>
 
@@ -85,27 +84,33 @@
     uniform samplerCube tCube;
     uniform sampler2D tDepthFront;
     uniform sampler2D tDepthBack;
+    uniform sampler2D tNormalsBack;
+    uniform float width;
+    uniform float height;
 
     varying vec3 vReflection;
     varying vec3 vRefraction;
 
 	void main() {
+	    vec2 texturePosition = vec2(gl_FragCoord.x / width, gl_FragCoord.y / height);
 	    vec4 reflection = textureCube(tCube, vReflection);
 	    vec4 refraction = textureCube(tCube, vRefraction);
-	    vec4 depthFront = texture2D(tDepthFront, gl_FragCoord.xy);
-	    vec4 depthBack = texture2D(tDepthBack, gl_FragCoord.xy);
-        gl_FragColor = depthFront;
+	    float depthFront = texture2D(tDepthFront, texturePosition).x;
+	    float depthBack = texture2D(tDepthBack, texturePosition).x;
+	    vec4 normalsBack = texture2D(tNormalsBack, texturePosition);
+	    float depthDiff = clamp(1.0 - (depthFront - depthBack) * 5.0, 0.0, 1.0);
+        gl_FragColor = mix(vec4(0.0), normalsBack, depthDiff);
     }
 </script>
 
 <script>
 
-var scene, bufferSceneDepthFront, bufferSceneDepthBack;
+var scene, bufferSceneDepthFront, bufferSceneDepthBack, bufferSceneNormalsBack;
 var renderer;
 var camera;
-var mesh, meshBack, meshFront;
+var mesh, meshBack, meshFront, meshNormals;
 var controls;
-var renderTargetDepthFront, renderTargetDepthBack;
+var renderTargetDepthFront, renderTargetDepthBack, renderTargetNormalsBack;
 
 $(document).ready(function() {
     init();
@@ -126,10 +131,12 @@ function init() {
 
     renderTargetDepthBack = new THREE.WebGLRenderTarget(width, height);
     renderTargetDepthFront = new THREE.WebGLRenderTarget(width, height);
+    renderTargetNormalsBack = new THREE.WebGLRenderTarget(width, height);
 
     scene = new THREE.Scene();
     bufferSceneDepthFront = new THREE.Scene();
     bufferSceneDepthBack = new THREE.Scene();
+    bufferSceneNormalsBack = new THREE.Scene();
 
     var cubeLoader = new THREE.CubeTextureLoader()
         .setPath( 'https://philippmatthes.github.io/assets/img/skybox/' )
@@ -147,24 +154,19 @@ function init() {
     var material = new THREE.ShaderMaterial({
         uniforms: {
             "tCube": cubeLoader,
-            "tDepthFront": { type: "t", value: renderTargetDepthFront.texture },
-            "tDepthBack": { type: "t", value: renderTargetDepthBack.texture }
+            "tDepthFront": { value: renderTargetDepthFront.texture },
+            "tDepthBack": { value: renderTargetDepthBack.texture },
+            "tNormalsBack": { value: renderTargetNormalsBack.texture },
+            "width": { value: width },
+            "height": { value: height }
         },
         vertexShader:   $("#vs").text(),
         fragmentShader: $("#fs").text()
     });
 
-    var backDepthMaterial = new THREE.ShaderMaterial({
-        side: THREE.BackSide,
-        vertexShader: $("#vs-depth").text(),
-        fragmentShader: $("#fs-depth").text()
-    });
-
-    var frontDepthMaterial = new THREE.ShaderMaterial({
-        side: THREE.FrontSide,
-        vertexShader: $("#vs-depth").text(),
-        fragmentShader: $("#fs-depth").text()
-    });
+    var backDepthMaterial = new THREE.MeshDepthMaterial({side: THREE.BackSide});
+    var backNormalsMaterial = new THREE.MeshNormalMaterial({side: THREE.BackSide});
+    var frontDepthMaterial = new THREE.MeshDepthMaterial({side: THREE.FrontSide});
 
     const radius = 3.5;
     const tube = 1.5;
@@ -172,18 +174,22 @@ function init() {
     const tubularSegments = 64;
     const p = 2;
     const q = 3;
-    const geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
+    var geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
+
+    // geometry = new THREE.CubeGeometry(10, 10, 10);
 
     mesh = new THREE.Mesh(geometry, material);
+    meshNormals = new THREE.Mesh(geometry, backNormalsMaterial);
     meshBack = new THREE.Mesh(geometry, backDepthMaterial);
     meshFront = new THREE.Mesh(geometry, frontDepthMaterial);
 
     scene.add(mesh);
     bufferSceneDepthBack.add(meshBack);
     bufferSceneDepthFront.add(meshFront);
+    bufferSceneNormalsBack.add(meshNormals);
 
-    camera = new THREE.PerspectiveCamera (45, width/height, 1, 50);
-    camera.position.z = -20;
+    camera = new THREE.PerspectiveCamera (45, width/height, 10, 50);
+    camera.position.z = -25;
     camera.lookAt (new THREE.Vector3(0,0,0));
 
     controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -199,16 +205,19 @@ function animate() {
     controls.update();
     renderer.render(bufferSceneDepthBack, camera, renderTargetDepthBack, true);
     renderer.render(bufferSceneDepthFront, camera, renderTargetDepthFront, true);
+    renderer.render(bufferSceneNormalsBack, camera, renderTargetNormalsBack, true);
     renderer.render(scene, camera);
-    requestAnimationFrame (animate);
+    requestAnimationFrame(animate);
 }
 
 
+/*
 window.addEventListener("resize", function() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }, false);
+*/
 
 
 
