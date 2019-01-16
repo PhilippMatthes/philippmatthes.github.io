@@ -54,7 +54,11 @@
      */
 
     varying vec3 vReflection;
-    varying vec3 vRefraction;
+    varying vec3 vFirstRefraction;
+    varying mat4 mProjectionMatrix;
+    varying mat4 mViewMatrix;
+    varying vec3 vNormal;
+    varying vec3 vIncident;
 
     vec3 calculateNormalizedIncidentVector() {
         return normalize(position.xyz - cameraPosition.xyz);
@@ -73,10 +77,13 @@
     }
 
 	void main() {
-	    vec3 normalizedIncidentVector = calculateNormalizedIncidentVector();
+	    vIncident = calculateNormalizedIncidentVector();
 	    vec3 normalizedNormal = normalize(normal);
-	    vReflection = calculateReflectionVector(normalizedIncidentVector, normalizedNormal);
-        vRefraction = calculateRefractionVector(normalizedIncidentVector, normalizedNormal);
+	    vReflection = calculateReflectionVector(vIncident, normalizedNormal);
+        vFirstRefraction = calculateRefractionVector(vIncident, normalizedNormal);
+        mProjectionMatrix = projectionMatrix;
+        mViewMatrix = viewMatrix;
+        vNormal = normal;
         gl_Position = calculatePosition();
     }
 </script>
@@ -87,22 +94,40 @@
     uniform sampler2D tNormalsBack;
     uniform float width;
     uniform float height;
+    uniform float zFar;
+    uniform float zNear;
 
     varying vec3 vReflection;
-    varying vec3 vRefraction;
+    varying vec3 vFirstRefraction;
+    varying mat4 mProjectionMatrix;
+    varying mat4 mViewMatrix;
+    varying vec3 vNormal;
+    varying vec3 vIncident;
+
+    vec2 worldSpaceToPixelCoordinate(vec3 vWorldSpace) {
+        mat4 viewProjectionMatrix = mProjectionMatrix * mViewMatrix;
+        vec4 coordinate3D = viewProjectionMatrix * vec4(vWorldSpace, 1.0);
+        return coordinate3D.xy;
+    }
+
+    vec3 calculateRefractionVector() {
+        vec2 texturePosition = vec2(gl_FragCoord.x / width, gl_FragCoord.y / height);
+        float depthFront = texture2D(tDepthFront, texturePosition).x;
+	    float depthBack = texture2D(tDepthBack, texturePosition).x;
+	    float depthDiff = (depthFront - depthBack) * (zFar - zNear);
+	    vec3 approximateOutgoingPoint = normalize(vFirstRefraction) * depthDiff;
+	    vec2 screenSpaceOutgoingPoint = worldSpaceToPixelCoordinate(approximateOutgoingPoint);
+	    vec3 backNormals = texture2D(tNormalsBack, screenSpaceOutgoingPoint).xyz;
+	    if (length(backNormals) == 0.0) {
+	        backNormals = vIncident;
+	    }
+	    return refract(normalize(approximateOutgoingPoint), normalize(backNormals), 1.1 / 1.0);
+    }
 
 	void main() {
-	    vec2 texturePosition = vec2(gl_FragCoord.x / width, gl_FragCoord.y / height);
 	    vec4 reflection = textureCube(tCube, vReflection);
-	    vec4 refraction = textureCube(tCube, vRefraction);
-	    float depthFront = texture2D(tDepthFront, texturePosition).x;
-	    float depthBack = texture2D(tDepthBack, texturePosition).x;
-	    vec4 normalsBack = texture2D(tNormalsBack, texturePosition);
-	    float depthDiff = clamp((depthFront - depthBack) * 3.0, 0.0, 1.0);
-
-	    vec4 color = mix(refraction, reflection, depthDiff);
-	    color = mix(color, normalsBack, 0.3);
-        gl_FragColor = color;
+        vec4 refraction = textureCube(tCube, calculateRefractionVector());
+        gl_FragColor = mix(reflection, refraction, 0.4);
     }
 </script>
 
@@ -123,6 +148,8 @@ $(document).ready(function() {
 function init() {
     var width = window.innerWidth;
     var height = window.innerHeight;
+    var zFar = 50.0;
+    var zNear = 1.0;
 
     renderer = new THREE.WebGLRenderer({
         antialias: true,
@@ -161,25 +188,36 @@ function init() {
             "tDepthBack": { value: renderTargetDepthBack.texture },
             "tNormalsBack": { value: renderTargetNormalsBack.texture },
             "width": { value: width },
-            "height": { value: height }
+            "height": { value: height },
+            "zFar": { value: zFar },
+            "zNear": { value: zNear }
         },
         vertexShader:   $("#vs").text(),
         fragmentShader: $("#fs").text()
     });
 
-    var backDepthMaterial = new THREE.MeshDepthMaterial({side: THREE.BackSide});
+    var backDepthMaterial = new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        vertexShader:   $("#vs-depth").text(),
+        fragmentShader: $("#fs-depth").text()
+    });
     var backNormalsMaterial = new THREE.MeshNormalMaterial({side: THREE.BackSide});
-    var frontDepthMaterial = new THREE.MeshDepthMaterial({side: THREE.FrontSide});
+    var frontDepthMaterial = new THREE.ShaderMaterial({
+        side: THREE.FrontSide,
+        vertexShader:   $("#vs-depth").text(),
+        fragmentShader: $("#fs-depth").text()
+    });
 
     const radius = 3.5;
     const tube = 1.5;
-    const radialSegments = 8;
-    const tubularSegments = 64;
+    const radialSegments = 32;
+    const tubularSegments = 128;
     const p = 2;
     const q = 3;
     var geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
 
     // geometry = new THREE.CubeGeometry(10, 10, 10);
+    // geometry = new THREE.SphereGeometry(10);
 
     mesh = new THREE.Mesh(geometry, material);
     meshNormals = new THREE.Mesh(geometry, backNormalsMaterial);
@@ -191,8 +229,8 @@ function init() {
     bufferSceneDepthFront.add(meshFront);
     bufferSceneNormalsBack.add(meshNormals);
 
-    camera = new THREE.PerspectiveCamera (45, width/height, 10, 50);
-    camera.position.z = -25;
+    camera = new THREE.PerspectiveCamera (45, width/height, zNear, zFar);
+    camera.position.z = -20;
     camera.lookAt (new THREE.Vector3(0,0,0));
 
     controls = new THREE.OrbitControls( camera, renderer.domElement );
