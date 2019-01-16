@@ -4,6 +4,10 @@
 
 <body style="width: 100%; height: 100%" class="bg-black">
 <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+<div id="error" style="display: none;">
+    Your browser does not support <strong>WEBGL_draw_buffers</strong>.<br><br>
+    This demo will not work.
+</div>
 </body>
 
 <script src="../assets/js/jquery-3.3.1.min.js"></script>
@@ -18,127 +22,112 @@
 <script src="../assets/js/RenderPass.js"></script>
 
 
-<script id="vs-depth" type="webgl">
-    vec4 calculatePosition() {
-        return projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
+<script id="gbuffer-vert" type="x-shader/x-vertex">
+    #extension GL_EXT_draw_buffers : require
 
-    void main() {
-        gl_Position = calculatePosition();
-    }
-</script>
-<script id="fs-depth" type="webgl">
-    float calculateDepth() {
-        return gl_FragCoord.z;
-    }
+    uniform mat4 projectionMatrix;
+    uniform mat4 modelViewMatrix;
+    uniform mat3 normalMatrix;
+    uniform vec3 cameraPosition;
 
-    void main() {
-        gl_FragColor = vec4(vec3(calculateDepth()), 1.0);
-    }
-</script>
-
-
-<script id="vs" type="webgl">
-    /*
-     * Predefined inputs
-     *
-     * uniform mat4 modelMatrix;
-     * uniform mat4 modelViewMatrix;
-     * uniform mat4 projectionMatrix;
-     * uniform mat4 viewMatrix;
-     * uniform mat3 normalMatrix;
-     * uniform vec3 cameraPosition;
-     * attribute vec3 position;
-     * attribute vec3 normal;
-     * attribute vec2 uv;
-     */
-
-    varying vec3 vReflection;
-    varying vec3 vFirstRefraction;
-    varying mat4 mProjectionMatrix;
-    varying mat4 mViewMatrix;
-    varying vec3 vNormal;
-    varying vec3 vIncident;
-
-    vec3 calculateNormalizedIncidentVector() {
-        return normalize(position.xyz - cameraPosition.xyz);
-    }
-
-    vec3 calculateReflectionVector(vec3 normalizedIncidentVector, vec3 normalizedNormal) {
-        return reflect(normalizedIncidentVector, normalizedNormal);
-    }
-
-    vec3 calculateRefractionVector(vec3 normalizedIncidentVector, vec3 normalizedNormal) {
-        return refract(normalizedIncidentVector, normalizedNormal, 1.0 / 1.1);
-    }
-
-    vec4 calculatePosition() {
-        return projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-
-	void main() {
-	    vIncident = calculateNormalizedIncidentVector();
-	    vec3 normalizedNormal = normalize(normal);
-	    vReflection = calculateReflectionVector(vIncident, normalizedNormal);
-        vFirstRefraction = calculateRefractionVector(vIncident, normalizedNormal);
-        mProjectionMatrix = projectionMatrix;
-        mViewMatrix = viewMatrix;
-        vNormal = normal;
-        gl_Position = calculatePosition();
-    }
-</script>
-<script id="fs" type="webgl">
-    uniform samplerCube tCube;
-    uniform sampler2D tDepthFront;
-    uniform sampler2D tDepthBack;
-    uniform sampler2D tNormalsBack;
-    uniform float width;
-    uniform float height;
     uniform float zFar;
     uniform float zNear;
 
-    varying vec3 vReflection;
-    varying vec3 vFirstRefraction;
-    varying mat4 mProjectionMatrix;
-    varying mat4 mViewMatrix;
+    attribute vec4 position;
+    attribute vec3 normal;
+    attribute vec2 uv;
+
     varying vec3 vNormal;
+    varying vec3 vDepth;
+
+    vec3 calculateSmoothNormals() {
+        vec4 mvPosition = modelViewMatrix * position;
+        vec3 transformedNormal = normalMatrix * normal;
+        return normalize(transformedNormal);
+    }
+
+    vec3 calculateNormalizedDepth() {
+        float distanceToCamera = length(cameraPosition.xyz - position.xyz);
+        float normalizedDepth = (distanceToCamera) / (zNear + zFar);
+        return vec3(normalizedDepth);
+    }
+
+    void main() {
+        vNormal = calculateSmoothNormals();
+        vDepth = calculateNormalizedDepth();
+        gl_Position = projectionMatrix * modelViewMatrix * position;
+    }
+
+</script>
+<script id="gbuffer-frag" type="x-shader/x-fragment">
+    #extension GL_EXT_draw_buffers : require
+    precision mediump float;
+
+    varying vec3 vNormal;
+    varying vec3 vDepth;
+
+    void main() {
+        gl_FragData[0] = vec4(vDepth, 0.0);
+        gl_FragData[1] = vec4(vNormal, 0.0);
+    }
+
+</script>
+
+<script id="render-vert" type="x-shader/x-vertex">
+    uniform mat4 projectionMatrix;
+    uniform mat4 modelViewMatrix;
+    uniform vec3 cameraPosition;
+
+    attribute vec2 uv;
+    attribute vec4 position;
+
+    varying vec2 vUv;
     varying vec3 vIncident;
 
-    vec2 worldSpaceToPixelCoordinate(vec3 vWorldSpace) {
-        mat4 viewProjectionMatrix = mProjectionMatrix * mViewMatrix;
-        vec4 coordinate3D = viewProjectionMatrix * vec4(vWorldSpace, 1.0);
-        return coordinate3D.xy;
-    }
-
-    vec3 calculateRefractionVector() {
-        vec2 texturePosition = vec2(gl_FragCoord.x / width, gl_FragCoord.y / height);
-        float depthFront = texture2D(tDepthFront, texturePosition).x;
-	    float depthBack = texture2D(tDepthBack, texturePosition).x;
-	    float depthDiff = (depthFront - depthBack) * (zFar - zNear);
-	    vec3 approximateOutgoingPoint = normalize(vFirstRefraction) * depthDiff;
-	    vec2 screenSpaceOutgoingPoint = worldSpaceToPixelCoordinate(approximateOutgoingPoint);
-	    vec3 backNormals = texture2D(tNormalsBack, screenSpaceOutgoingPoint).xyz;
-	    if (length(backNormals) == 0.0) {
-	        backNormals = vIncident;
-	    }
-	    return refract(normalize(approximateOutgoingPoint), normalize(backNormals), 1.1 / 1.0);
-    }
-
-	void main() {
-	    vec4 reflection = textureCube(tCube, vReflection);
-        vec4 refraction = textureCube(tCube, calculateRefractionVector());
-        gl_FragColor = mix(reflection, refraction, 0.4);
+    void main() {
+        vUv = uv;
+        vIncident = normalize(position.xyz - cameraPosition.xyz);
+        gl_Position = projectionMatrix * modelViewMatrix * position;
     }
 </script>
 
-<script>
+<script id="render-frag" type="x-shader/x-fragment">
+    precision mediump float;
 
-var scene, bufferSceneDepthFront, bufferSceneDepthBack, bufferSceneNormalsBack;
+    varying vec2 vUv;
+    varying vec3 vIncident;
+
+    uniform sampler2D tFrontFaceDepth;
+    uniform sampler2D tFrontFaceNormal;
+    uniform sampler2D tBackFaceDepth;
+    uniform sampler2D tBackFaceNormal;
+    uniform samplerCube tCube;
+    uniform float zFar;
+    uniform float zNear;
+
+    void main() {
+        vec3 frontFaceDepth = texture2D(tFrontFaceDepth, vUv).rgb;
+        vec3 backFaceDepth = texture2D(tBackFaceDepth, vUv).rgb;
+        vec3 frontFaceNormal = texture2D(tFrontFaceNormal, vUv).rgb;
+        vec3 backFaceNormal = texture2D(tBackFaceNormal, vUv).rgb;
+
+        vec3 vReflection = reflect(vIncident, backFaceNormal);
+
+        vec4 color = textureCube(tCube, vReflection);
+
+        gl_FragColor = color;
+    }
+
+</script>
+
+<script>
 var renderer;
-var camera;
-var mesh, meshBack, meshFront, meshNormals;
 var controls;
-var renderTargetDepthFront, renderTargetDepthBack, renderTargetNormalsBack;
+var camera;
+var backFaceScene, frontFaceScene;
+var backFaceTarget, frontFaceTarget;
+var postScene, postCamera;
+var supportsMRT = true;
 
 $(document).ready(function() {
     init();
@@ -146,121 +135,145 @@ $(document).ready(function() {
 });
 
 function init() {
-    var width = window.innerWidth;
-    var height = window.innerHeight;
-    var zFar = 50.0;
-    var zNear = 1.0;
 
-    renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: false
-    });
-    renderer.setClearColor( 0xffffff, 0 );
-    renderer.setSize (width, height);
-    document.body.appendChild (renderer.domElement);
+    const zNear = 1.0;
+    const zFar = 40.0;
 
-    renderTargetDepthBack = new THREE.WebGLRenderTarget(width, height);
-    renderTargetDepthFront = new THREE.WebGLRenderTarget(width, height);
-    renderTargetNormalsBack = new THREE.WebGLRenderTarget(width, height);
+    renderer = new THREE.WebGLRenderer();
 
-    scene = new THREE.Scene();
-    bufferSceneDepthFront = new THREE.Scene();
-    bufferSceneDepthBack = new THREE.Scene();
-    bufferSceneNormalsBack = new THREE.Scene();
+    if ( !renderer.extensions.get('WEBGL_draw_buffers') ) {
+        supportsMRT = false;
+        document.querySelector('#error').style.display = 'block';
+        return;
+    }
 
-    var cubeLoader = new THREE.CubeTextureLoader()
-        .setPath( 'https://philippmatthes.github.io/assets/img/skybox/' )
-        .load([
-            "posx.jpg",
-            "negx.jpg",
-            "posy.jpg",
-            "negy.jpg",
-            "posz.jpg",
-            "negz.jpg"]
-        );
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild(renderer.domElement);
 
-    scene.background = cubeLoader;
-
-    var material = new THREE.ShaderMaterial({
-        uniforms: {
-            "tCube": { value: cubeLoader },
-            "tDepthFront": { value: renderTargetDepthFront.texture },
-            "tDepthBack": { value: renderTargetDepthBack.texture },
-            "tNormalsBack": { value: renderTargetNormalsBack.texture },
-            "width": { value: width },
-            "height": { value: height },
-            "zFar": { value: zFar },
-            "zNear": { value: zNear }
-        },
-        vertexShader:   $("#vs").text(),
-        fragmentShader: $("#fs").text()
-    });
-
-    var backDepthMaterial = new THREE.ShaderMaterial({
-        side: THREE.BackSide,
-        vertexShader:   $("#vs-depth").text(),
-        fragmentShader: $("#fs-depth").text()
-    });
-    var backNormalsMaterial = new THREE.MeshNormalMaterial({side: THREE.BackSide});
-    var frontDepthMaterial = new THREE.ShaderMaterial({
-        side: THREE.FrontSide,
-        vertexShader:   $("#vs-depth").text(),
-        fragmentShader: $("#fs-depth").text()
-    });
-
-    const radius = 3.5;
-    const tube = 1.5;
-    const radialSegments = 32;
-    const tubularSegments = 128;
-    const p = 2;
-    const q = 3;
-    var geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
-
-    // geometry = new THREE.CubeGeometry(10, 10, 10);
-    // geometry = new THREE.SphereGeometry(10);
-
-    mesh = new THREE.Mesh(geometry, material);
-    meshNormals = new THREE.Mesh(geometry, backNormalsMaterial);
-    meshBack = new THREE.Mesh(geometry, backDepthMaterial);
-    meshFront = new THREE.Mesh(geometry, frontDepthMaterial);
-
-    scene.add(mesh);
-    bufferSceneDepthBack.add(meshBack);
-    bufferSceneDepthFront.add(meshFront);
-    bufferSceneNormalsBack.add(meshNormals);
-
-    camera = new THREE.PerspectiveCamera (45, width/height, zNear, zFar);
-    camera.position.z = -20;
-    camera.lookAt (new THREE.Vector3(0,0,0));
+    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, zNear, zFar );
+    camera.position.z = -15;
 
     controls = new THREE.OrbitControls( camera, renderer.domElement );
     controls.enableDamping = true;
     controls.dampingFactor = 0.25;
-    controls.enableZoom = true;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.3;
+    controls.rotateSpeed = 0.35;
+
+    // Create a multi render target with Float buffers
+    backFaceTarget = createTarget();
+    frontFaceTarget = createTarget();
+
+    backFaceScene = new THREE.Scene();
+    frontFaceScene = new THREE.Scene();
+
+    const radius = 3.5;
+    const tube = 1.5;
+    const radialSegments = 16;
+    const tubularSegments = 64;
+    const p = 2;
+    const q = 3;
+    var geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
+
+    var frontFaceMaterial = new THREE.RawShaderMaterial({
+        side: THREE.FrontSide,
+        uniforms: {
+            zNear: { value: zNear },
+            zFar: { value: zFar }
+        },
+        vertexShader: document.querySelector('#gbuffer-vert').textContent.trim(),
+        fragmentShader: document.querySelector('#gbuffer-frag').textContent.trim()
+    });
+    var backFaceMaterial = new THREE.RawShaderMaterial({
+        side: THREE.BackSide,
+        uniforms: {
+            zNear: { value: zNear },
+            zFar: { value: zFar }
+        },
+        vertexShader: document.querySelector('#gbuffer-vert').textContent.trim(),
+        fragmentShader: document.querySelector('#gbuffer-frag').textContent.trim()
+    });
+
+    var frontFaceTorus = new THREE.Mesh(geometry, frontFaceMaterial);
+    var backFaceTorus = new THREE.Mesh(geometry, backFaceMaterial);
+
+    frontFaceScene.add(frontFaceTorus);
+    backFaceScene.add(backFaceTorus);
+
+    var cubeLoader = new THREE.CubeTextureLoader()
+    .setPath('https://philippmatthes.github.io/assets/img/skybox/')
+    .load([
+        "posx.jpg",
+        "negx.jpg",
+        "posy.jpg",
+        "negy.jpg",
+        "posz.jpg",
+        "negz.jpg"]
+    );
+
+    // Setup post processing stage
+    postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    var postMaterial = new THREE.RawShaderMaterial({
+        vertexShader: document.querySelector('#render-vert').textContent.trim(),
+        fragmentShader: document.querySelector('#render-frag').textContent.trim(),
+        uniforms: {
+            zNear: { value: zNear },
+            zFar: { value: zFar },
+            tFrontFaceDepth: { type: 't', value: frontFaceTarget.attachments[0] },
+            tFrontFaceNormal: { type: 't', value: frontFaceTarget.attachments[1] },
+            tBackFaceDepth: { type: 't', value: backFaceTarget.attachments[0] },
+            tBackFaceNormal: { type: 't', value: backFaceTarget.attachments[1] },
+            tCube: { value: cubeLoader }
+        }
+    });
+    var postPlane = new THREE.PlaneGeometry(2, 2);
+    var postQuad = new THREE.Mesh(postPlane, postMaterial);
+    postScene = new THREE.Scene();
+    postScene.add(postQuad);
+    postScene.background = cubeLoader;
+
+    onWindowResize();
+    window.addEventListener( 'resize', onWindowResize, false );
+    document.addEventListener( 'mousedown', onMouseDown, false );
 }
 
-
-function animate() {
-    controls.update();
-    renderer.render(bufferSceneDepthBack, camera, renderTargetDepthBack, true);
-    renderer.render(bufferSceneDepthFront, camera, renderTargetDepthFront, true);
-    renderer.render(bufferSceneNormalsBack, camera, renderTargetNormalsBack, true);
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
+function createTarget() {
+    var t = new THREE.WebGLMultiRenderTarget( window.innerWidth, window.innerHeight );
+    t.texture.format = THREE.RGBFormat;
+    t.texture.minFilter = THREE.NearestFilter;
+    t.texture.magFilter = THREE.NearestFilter;
+    t.texture.type = THREE.FloatType;
+    t.texture.generateMipmaps = false;
+    t.stencilBuffer = false;
+    t.depthBuffer = true;
+    t.attachments.push( t.texture.clone() );
+    return t;
 }
 
-
-/*
-window.addEventListener("resize", function() {
+function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}, false);
-*/
 
+    var dpr = renderer.getPixelRatio();
+    frontFaceTarget.setSize( window.innerWidth * dpr, window.innerHeight * dpr );
+    backFaceTarget.setSize( window.innerWidth * dpr, window.innerHeight * dpr );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+}
 
+function onMouseDown() {
+    console.log("Clickedy click");
+}
 
+function animate() {
+
+    if ( !supportsMRT ) return;
+    controls.update();
+
+    renderer.render( frontFaceScene, camera, frontFaceTarget );
+    renderer.render( backFaceScene, camera, backFaceTarget );
+    renderer.render( postScene, postCamera );
+
+    requestAnimationFrame( animate );
+
+}
 
 </script>
