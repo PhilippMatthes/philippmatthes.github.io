@@ -97,6 +97,7 @@
     uniform float zNear;
     uniform float width;
     uniform float height;
+    uniform float windowDeviceRatio;
 
     varying vec3 vIncident;
 
@@ -104,7 +105,7 @@
     const float refractionDelta = 0.02;
 
     void main() {
-        vec2 textureCoordinates = vec2(gl_FragCoord.x / (width * 2.0), gl_FragCoord.y / (height * 2.0));
+        vec2 textureCoordinates = vec2(gl_FragCoord.x / (width), gl_FragCoord.y / (height));
 
         float frontFaceDepth = texture2D(tFrontFaceDepth, textureCoordinates).r;
         float backFaceDepth = texture2D(tBackFaceDepth, textureCoordinates).r;
@@ -178,7 +179,7 @@ function init() {
         return;
     }
 
-    renderer.setPixelRatio( window.devicePixelRatio );
+    // renderer.setPixelRatio( window.deviceRatio );
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild(renderer.domElement);
 
