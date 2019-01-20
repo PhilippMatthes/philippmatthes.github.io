@@ -133,7 +133,9 @@
 
         // Calculate reflection
         vec3 reflection = reflect(vIncident, frontFaceNormal);
+        vec3 backFaceReflection = reflect(vIncident, backFaceNormal);
         vec4 colorReflection = textureCube(tCube, reflection);
+        vec4 colorBackFaceReflection = textureCube(tCube, backFaceReflection);
 
         // Calculate depth effect
         float colorDepth = (backFaceDepth - frontFaceDepth);
@@ -155,6 +157,8 @@
         } else if (renderFeature == 7) {
             gl_FragColor = colorFrontFaceRefraction;
         } else if (renderFeature == 8) {
+            gl_FragColor = colorBackFaceReflection;
+        } else if (renderFeature == 9) {
             gl_FragColor = colorReflection;
         }
     }
@@ -176,12 +180,13 @@ var renderFeatures = {
     2: "Backface Depth",
     3: "Frontface Normals",
     4: "Frontface Depth",
-    5: "Depth difference",
-    6: "Backface refraction",
-    7: "Frontface refraction",
-    8: "Reflection"
+    5: "Depth Difference",
+    6: "Backface Refraction",
+    7: "Frontface Refraction",
+    8: "Backface Reflection",
+    9: "Frontface Reflection"
 };
-const maxRenderFeatures = 8;
+const maxRenderFeatures = 10;
 $("#pass-button").text(renderFeatures[0]);
 
 $(document).ready(function() {
