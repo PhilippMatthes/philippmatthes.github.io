@@ -33,6 +33,7 @@ h6 {
   padding-top: 1rem;
   padding-bottom: 1rem;
   background-color: #1F1C2C;
+    box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.2);
 }
 
 .navbar-custom .navbar-brand {
@@ -272,8 +273,7 @@ section {
 }
 
 .small-bubble {
-    padding: 10px;
-    margin: 10px;
+    margin-top: 10px;
     border-radius: 20px;
     height: 20px;
     width: 20px;

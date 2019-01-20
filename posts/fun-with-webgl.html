@@ -4,10 +4,8 @@
 
 <body style="width: 100%; height: 100%" class="bg-black">
 <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
-<div id="error" style="display: none;">
-    Your browser does not support <strong>WEBGL_draw_buffers</strong>.<br><br>
-    This demo will not work.
-</div>
+<button id="pass-button" onclick="showNextPass()" style="position: absolute; bottom: 1rem; left: 50%; transform: translate(-50%, 0);"
+        class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation"></button>
 </body>
 
 <script src="../assets/js/jquery-3.3.1.min.js"></script>
@@ -98,6 +96,7 @@
     uniform float width;
     uniform float height;
     uniform float windowDeviceRatio;
+    uniform int renderFeature;
 
     varying vec3 vIncident;
 
@@ -136,7 +135,28 @@
         vec3 reflection = reflect(vIncident, frontFaceNormal);
         vec4 colorReflection = textureCube(tCube, reflection);
 
-        gl_FragColor = mix(colorRefraction, colorReflection, 0.3);
+        // Calculate depth effect
+        float colorDepth = (backFaceDepth - frontFaceDepth);
+
+        if (renderFeature == 0) {
+            gl_FragColor = mix(mix(colorReflection, colorRefraction, 0.6), vec4(vec3(0.0), 1.0), colorDepth);
+        } else if (renderFeature == 1) {
+            gl_FragColor = vec4(backFaceNormal, 1.0);
+        } else if (renderFeature == 2) {
+            gl_FragColor = vec4(vec3(backFaceDepth), 1.0);
+        } else if (renderFeature == 3) {
+            gl_FragColor = vec4(frontFaceNormal, 1.0);
+        } else if (renderFeature == 4) {
+            gl_FragColor = vec4(vec3(frontFaceDepth), 1.0);
+        } else if (renderFeature == 5) {
+            gl_FragColor = vec4(vec3(backFaceDepth - frontFaceDepth), 1.0);
+        } else if (renderFeature == 6) {
+            gl_FragColor = colorBackFaceRefraction;
+        } else if (renderFeature == 7) {
+            gl_FragColor = colorFrontFaceRefraction;
+        } else if (renderFeature == 8) {
+            gl_FragColor = colorReflection;
+        }
     }
 
 </script>
@@ -149,6 +169,20 @@ var backFaceScene, frontFaceScene;
 var backFaceTarget, frontFaceTarget;
 var postScene;
 var supportsMRT = true;
+var postMaterial;
+var renderFeatures = {
+    0: "Back-/Frontface Refraction, Reflection and Depth",
+    1: "Backface Normals",
+    2: "Backface Depth",
+    3: "Frontface Normals",
+    4: "Frontface Depth",
+    5: "Depth difference",
+    6: "Backface refraction",
+    7: "Frontface refraction",
+    8: "Reflection"
+};
+const maxRenderFeatures = 8;
+$("#pass-button").text(renderFeatures[0]);
 
 $(document).ready(function() {
     init();
@@ -175,7 +209,7 @@ function init() {
 
     if ( !renderer.extensions.get('WEBGL_draw_buffers') ) {
         supportsMRT = false;
-        document.querySelector('#error').style.display = 'block';
+        alert("Your browser does not support WEBGL_draw_buffers. This demo will not work.");
         return;
     }
 
@@ -189,6 +223,8 @@ function init() {
     controls = new THREE.OrbitControls( camera, renderer.domElement );
     controls.enableDamping = true;
     controls.dampingFactor = 0.25;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.4;
     controls.rotateSpeed = 0.35;
 
     // Create a multi render target with Float buffers
@@ -228,7 +264,7 @@ function init() {
         vertexShader: document.querySelector('#gbuffer-vert').textContent.trim(),
         fragmentShader: document.querySelector('#gbuffer-frag').textContent.trim()
     });
-    var postMaterial = new THREE.RawShaderMaterial({
+    postMaterial = new THREE.RawShaderMaterial({
         vertexShader: document.querySelector('#render-vert').textContent.trim(),
         fragmentShader: document.querySelector('#render-frag').textContent.trim(),
         uniforms: {
@@ -240,7 +276,8 @@ function init() {
             tFrontFaceNormal: { type: 't', value: frontFaceTarget.attachments[1] },
             tBackFaceDepth: { type: 't', value: backFaceTarget.attachments[0] },
             tBackFaceNormal: { type: 't', value: backFaceTarget.attachments[1] },
-            tCube: { value: cubeLoader }
+            tCube: { value: cubeLoader },
+            renderFeature: {value: 0}
         }
     });
 
@@ -256,7 +293,6 @@ function init() {
 
     onWindowResize();
     window.addEventListener( 'resize', onWindowResize, false );
-    document.addEventListener( 'mousedown', onMouseDown, false );
 }
 
 function createTarget() {
@@ -282,8 +318,10 @@ function onWindowResize() {
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
-function onMouseDown() {
-    console.log("Clickedy click");
+function showNextPass() {
+    const nextFeature = (postMaterial.uniforms.renderFeature.value + 1) % maxRenderFeatures;
+    postMaterial.uniforms.renderFeature.value = nextFeature;
+    $("#pass-button").text(renderFeatures[nextFeature]);
 }
 
 function animate() {

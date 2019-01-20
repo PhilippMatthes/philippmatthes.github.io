@@ -57,8 +57,7 @@
       <div data-target="color-trigger" class="bg-green border-2 margin-bottom-2">
         <div class="container border-2 text-white padding-2 text-center">
             <p>Last update: Jan-11-2019</p>
-            <h1>Fun with WebGL</h1>
-            <p>
+            <h1>Advanced Shading with WebGL and Three.js</h1>
                 I am grateful to show my new playground page. So what's this now?
                 This page will be used to experiment with HTML, CSS, JS and various techniques.
                 I currently attend the advanced lecture Computer Graphics 1 at TU Dresden.
@@ -66,13 +65,26 @@
                 and <a class="color-animation text-white font-weight-bold" href="https://philippmatth.es/index.php/2018/12/31/recommendation-two-interesting-approaches-to-realtime-refraction-with-opengl">read some papers on advanced realtime shading</a>.
                 I wanted to implement some of the techniques of CG1 and tried out WebGL, which is
                 very similar to OpenGL.
-            </p>
         </div>
 
-        <button onclick="load('posts/fun-with-webgl.html', '#load-fun-with-webgl', 500)"
-                class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered">Load demo</button>
-
         <div class="container border-2 padding-2" id="load-fun-with-webgl"></div>
+
+        <button onclick="load('posts/fun-with-webgl.html', '#load-fun-with-webgl', 500)"
+                class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered margin-bottom-2">Load demo</button>
+
+        <div class="container border-2 text-white padding-2 text-center margin-bottom-2">
+            For this demo, I used a modified version of Three.js
+                (<a class="color-animation text-white font-weight-bold" href="assets/js/three.min.js">Download</a>)
+                , which allows for G-Buffer drawing in a WebGL context. First, two
+                G-Buffer render passes are made, which process backface and frontface
+                normals and depth, respectively, for later computation. This results in
+                four textures being rendered to frame buffers. These textures are feeded
+                back into the main shader, which uses their inherent screen-space information
+                to compute reflection and refraction. Otherwise, the scene consists
+                of a skybox loaded with six textures and a parametric torus. Both refractions
+                also take respect of chromatic aberration and simulate subsurface scattering
+                through the precomputed heightmaps.
+        </div>
       </div>
 
       <div class="bg-green small-bubble centered"></div>
