@@ -73,17 +73,15 @@
                 class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered margin-bottom-2">Load demo</button>
 
         <div class="container border-2 text-white padding-2 text-center margin-bottom-2">
-            For this demo, I used a modified version of Three.js
-                (<a class="color-animation text-white font-weight-bold" href="assets/js/three.min.js">Download</a>)
-                , which allows for G-Buffer drawing in a WebGL context. First, two
-                G-Buffer render passes are made, which process backface and frontface
-                normals and depth, respectively, for later computation. This results in
-                four textures being rendered to frame buffers. These textures are feeded
-                back into the main shader, which uses their inherent screen-space information
-                to compute reflection and refraction. Otherwise, the scene consists
-                of a skybox loaded with six textures and a parametric torus. Both refractions
-                also take respect of chromatic aberration and simulate subsurface scattering
-                through the precomputed heightmaps.
+            For this demo, I use multiple render targets to emulate a single G-Buffer. First, four
+            render passes are made, which process backface and frontface
+            normals and depth respectively, for later computation. This results in
+            four textures being rendered to frame buffers. These textures are feeded
+            back into the main shader, which uses their inherent screen-space information
+            to compute reflection and refraction. Otherwise, the scene consists
+            of a skybox loaded with six textures and a parametric torus. Both refractions
+            also take respect of chromatic aberration and simulate subsurface scattering
+            through the precomputed heightmaps.
         </div>
       </div>
 
