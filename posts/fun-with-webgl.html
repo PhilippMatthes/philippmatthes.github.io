@@ -15,6 +15,7 @@
 <script src="../assets/js/fun-with-colors.js"></script>
 <script src="../assets/js/three.min.js"></script>
 <script src="../assets/js/OrbitControls.js"></script>
+<script src="../assets/js/OBJLoader.js"></script>
 
 
 <script id="gbuffer-vert" type="x-shader/x-vertex">
@@ -174,6 +175,7 @@ var backFaceScene, frontFaceScene;
 var backFaceTarget, frontFaceTarget;
 var postScene;
 var supportsMRT = true;
+var frontFaceTorus, backFaceTorus, postSceneTorus;
 var postMaterial;
 var geometry;
 var renderFeatures = {
@@ -195,6 +197,12 @@ $(document).ready(function() {
     init();
     animate();
 });
+
+function changeGeometry(geometry) {
+	frontFaceTorus.geometry = geometry;
+	backFaceTorus.geometry = geometry;
+	postSceneTorus.geometry = geometry;
+}
 
 function init() {
 
@@ -242,65 +250,92 @@ function init() {
     frontFaceScene = new THREE.Scene();
     postScene = new THREE.Scene();
 
-    const radius = 3.5;
-    const tube = 1.5;
-    const radialSegments = 16;
-    const tubularSegments = 64;
-    const p = 2;
-    const q = 3;
-    geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
+    var loader = new THREE.OBJLoader();
 
-    // geometry = new THREE.BoxGeometry(10, 10, 10);
-    //geometry = new THREE.SphereGeometry(10, 10, 10);
+	loader.load(
+		'../assets/obj/bunny.obj',
+		function ( object ) {
+			object.traverse( function ( child ) {
 
-    var frontFaceMaterial = new THREE.RawShaderMaterial({
-        side: THREE.FrontSide,
-        uniforms: {
-            zNear: { value: zNear },
-            zFar: { value: zFar }
-        },
-        vertexShader: document.querySelector('#gbuffer-vert').textContent.trim(),
-        fragmentShader: document.querySelector('#gbuffer-frag').textContent.trim()
-    });
-    var backFaceMaterial = new THREE.RawShaderMaterial({
-        side: THREE.BackSide,
-        uniforms: {
-            zNear: { value: zNear },
-            zFar: { value: zFar }
-        },
-        vertexShader: document.querySelector('#gbuffer-vert').textContent.trim(),
-        fragmentShader: document.querySelector('#gbuffer-frag').textContent.trim()
-    });
-    postMaterial = new THREE.RawShaderMaterial({
-        vertexShader: document.querySelector('#render-vert').textContent.trim(),
-        fragmentShader: document.querySelector('#render-frag').textContent.trim(),
-        uniforms: {
-            zNear: { value: zNear },
-            zFar: { value: zFar },
-            width: { value: window.innerWidth },
-            height: { value: window.innerHeight },
-            tFrontFaceDepth: { type: 't', value: frontFaceTarget.attachments[0] },
-            tFrontFaceNormal: { type: 't', value: frontFaceTarget.attachments[1] },
-            tBackFaceDepth: { type: 't', value: backFaceTarget.attachments[0] },
-            tBackFaceNormal: { type: 't', value: backFaceTarget.attachments[1] },
-            tCube: { value: cubeLoader },
-            renderFeature: {value: 0}
-        }
-    });
+				if ( child.geometry !== undefined ) {
+					geometry = new THREE.Geometry().fromBufferGeometry( child.geometry );
+					
+					var frontFaceMaterial = new THREE.RawShaderMaterial({
+						side: THREE.FrontSide,
+						uniforms: {
+							zNear: { value: zNear },
+							zFar: { value: zFar }
+						},
+						vertexShader: document.querySelector('#gbuffer-vert').textContent.trim(),
+						fragmentShader: document.querySelector('#gbuffer-frag').textContent.trim()
+					});
+					var backFaceMaterial = new THREE.RawShaderMaterial({
+						side: THREE.BackSide,
+						uniforms: {
+							zNear: { value: zNear },
+							zFar: { value: zFar }
+						},
+						vertexShader: document.querySelector('#gbuffer-vert').textContent.trim(),
+						fragmentShader: document.querySelector('#gbuffer-frag').textContent.trim()
+					});
+					postMaterial = new THREE.RawShaderMaterial({
+						vertexShader: document.querySelector('#render-vert').textContent.trim(),
+						fragmentShader: document.querySelector('#render-frag').textContent.trim(),
+						uniforms: {
+							zNear: { value: zNear },
+							zFar: { value: zFar },
+							width: { value: window.innerWidth },
+							height: { value: window.innerHeight },
+							tFrontFaceDepth: { type: 't', value: frontFaceTarget.attachments[0] },
+							tFrontFaceNormal: { type: 't', value: frontFaceTarget.attachments[1] },
+							tBackFaceDepth: { type: 't', value: backFaceTarget.attachments[0] },
+							tBackFaceNormal: { type: 't', value: backFaceTarget.attachments[1] },
+							tCube: { value: cubeLoader },
+							renderFeature: {value: 0}
+						}
+					});
 
-    var frontFaceTorus = new THREE.Mesh(geometry, frontFaceMaterial);
-    var backFaceTorus = new THREE.Mesh(geometry, backFaceMaterial);
-    var postSceneTorus = new THREE.Mesh(geometry, postMaterial);
+					frontFaceTorus = new THREE.Mesh(geometry, frontFaceMaterial);
+					backFaceTorus = new THREE.Mesh(geometry, backFaceMaterial);
+					postSceneTorus = new THREE.Mesh(geometry, postMaterial);
 
-    frontFaceScene.add(frontFaceTorus);
-    backFaceScene.add(backFaceTorus);
-    postScene.add(postSceneTorus);
+					frontFaceScene.add(frontFaceTorus);
+					backFaceScene.add(backFaceTorus);
+					postScene.add(postSceneTorus);
+					
+					var scale = 100;
+					
+					frontFaceTorus.scale.x = scale;
+					frontFaceTorus.scale.y = scale;
+					frontFaceTorus.scale.z = scale;
+					
+					backFaceTorus.scale.x = scale;
+					backFaceTorus.scale.y = scale;
+					backFaceTorus.scale.z = scale;
+					
+					postSceneTorus.scale.x = scale;
+					postSceneTorus.scale.y = scale;
+					postSceneTorus.scale.z = scale;
+									
+					return;
+				}
+
+			} );
+		},
+		function ( xhr ) {
+			console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+		},
+		function ( error ) {
+			console.log( 'An error happened' );
+		}
+	);
 
     postScene.background = cubeLoader;
 
     onWindowResize();
     window.addEventListener( 'resize', onWindowResize, false );
 }
+
 
 function createTarget() {
     var t = new THREE.WebGLMultiRenderTarget( window.innerWidth, window.innerHeight );
