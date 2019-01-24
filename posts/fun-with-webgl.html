@@ -175,6 +175,7 @@ var backFaceTarget, frontFaceTarget;
 var postScene;
 var supportsMRT = true;
 var postMaterial;
+var geometry;
 var renderFeatures = {
     0: "Back-/Frontface Refraction, Reflection and Depth",
     1: "Backface Normals",
@@ -247,7 +248,7 @@ function init() {
     const tubularSegments = 64;
     const p = 2;
     const q = 3;
-    var geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
+    geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
 
     // geometry = new THREE.BoxGeometry(10, 10, 10);
     //geometry = new THREE.SphereGeometry(10, 10, 10);
