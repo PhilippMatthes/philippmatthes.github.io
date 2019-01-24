@@ -15,16 +15,11 @@
 <script src="../assets/js/fun-with-colors.js"></script>
 <script src="../assets/js/three.min.js"></script>
 <script src="../assets/js/OrbitControls.js"></script>
+<script src="../assets/js/SimplexNoise.js"></script>
 
 <script id="depth-vert" type="x-shader/x-vertex">
-    uniform mat4 projectionMatrix;
-    uniform mat4 modelViewMatrix;
-    uniform vec3 cameraPosition;
-
     uniform float zFar;
     uniform float zNear;
-
-    attribute vec4 position;
 
     varying vec3 vDepth;
 
@@ -36,7 +31,7 @@
 
     void main() {
         vDepth = calculateNormalizedDepth();
-        gl_Position = projectionMatrix * modelViewMatrix * position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
 
 </script>
@@ -52,24 +47,17 @@
 </script>
 
 <script id="normals-vert" type="x-shader/x-vertex">
-    uniform mat4 projectionMatrix;
-    uniform mat4 modelViewMatrix;
-    uniform mat3 normalMatrix;
-
-    attribute vec4 position;
-    attribute vec3 normal;
-
     varying vec3 vNormal;
 
     vec3 calculateSmoothNormals() {
-        vec4 mvPosition = modelViewMatrix * position;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         vec3 transformedNormal = normalMatrix * normal;
         return normalize(transformedNormal);
     }
 
     void main() {
         vNormal = calculateSmoothNormals();
-        gl_Position = projectionMatrix * modelViewMatrix * position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
 
 </script>
@@ -84,19 +72,159 @@
 
 </script>
 
-<script id="render-vert" type="x-shader/x-vertex">
-    uniform mat4 projectionMatrix;
-    uniform mat4 viewMatrix;
-    uniform mat4 modelViewMatrix;
-    uniform vec3 cameraPosition;
-
-    attribute vec4 position;
-
+<script id="ssao-vert" type="x-shader/x-vertex">
     varying vec3 vIncident;
 
     void main() {
         vIncident = normalize(position.xyz - cameraPosition.xyz);
-        gl_Position = projectionMatrix * modelViewMatrix * position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+</script>
+
+<script id="ssao-frag" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform sampler2D tDepth;
+    uniform sampler2D tNormal;
+    uniform sampler2D tNoise;
+
+    uniform vec3 kernel[64];
+
+    uniform mat4 cameraProjectionMatrix;
+    uniform mat4 cameraInverseProjectionMatrix;
+
+    uniform float zFar;
+    uniform float zNear;
+    uniform float width;
+    uniform float height;
+
+    varying vec3 vIncident;
+
+    const float kernelRadius = 8.0;
+    const float minDistance = 0.005;
+    const float maxDistance = 0.05;
+
+    float viewZToOrthographicDepth( const in float viewZ, const in float near, const in float far ) {
+	    return ( viewZ + near ) / ( near - far );
+    }
+    float orthographicDepthToViewZ( const in float linearClipZ, const in float near, const in float far ) {
+        return linearClipZ * ( near - far ) - near;
+    }
+
+    float viewZToPerspectiveDepth( const in float viewZ, const in float near, const in float far ) {
+        return (( near + viewZ ) * far ) / (( far - near ) * viewZ );
+    }
+    float perspectiveDepthToViewZ( const in float invClipZ, const in float near, const in float far ) {
+        return ( near * far ) / ( ( far - near ) * invClipZ - far );
+    }
+
+    float getLinearDepth(const in vec2 screenPosition) {
+        float fragCoordZ = texture2D(tDepth, screenPosition).x;
+        float viewZ = perspectiveDepthToViewZ(fragCoordZ, zNear, zFar);
+        return viewZToOrthographicDepth(viewZ, zNear, zFar);
+    }
+
+    float getViewZ(const in float depth) {
+        return perspectiveDepthToViewZ(depth, zNear, zFar);
+    }
+
+    vec3 getViewPosition(const in vec2 screenPosition, float depth, float viewZ) {
+        float clipW = cameraProjectionMatrix[2][3] * viewZ + cameraProjectionMatrix[3][3];
+        vec4 clipPosition = vec4((vec3(screenPosition, depth) - 0.5) * 2.0, 1.0);
+        clipPosition *= clipW;
+        return (cameraInverseProjectionMatrix * clipPosition).xyz;
+    }
+
+    vec3 unpackRGBToNormal( vec3 rgb ) {
+        return 1.0 - 2.0 * rgb.xyz;
+    }
+
+    vec3 getViewNormal(const in vec2 screenPosition) {
+        return unpackRGBToNormal(texture2D(tNormal, screenPosition).xyz);
+    }
+
+    void main() {
+        vec2 textureCoordinates = vec2(gl_FragCoord.x / (width), gl_FragCoord.y / (height));
+
+        float depth = getLinearDepth(textureCoordinates);
+        float viewZ = getViewZ(depth);
+
+        vec3 viewPosition = getViewPosition(textureCoordinates, depth, viewZ);
+        vec3 viewNormal = getViewNormal(textureCoordinates);
+
+        vec2 noiseScale = vec2(width / 4.0, height / 4.0);
+        vec3 random = texture2D(tNoise, textureCoordinates * noiseScale).xyz;
+
+        vec3 tangent = normalize(random - viewNormal * dot(random, viewNormal));
+        vec3 bitangent = cross(viewNormal, tangent);
+        mat3 kernelMatrix = mat3(tangent, bitangent, viewNormal);
+
+        float occlusion = 0.0;
+
+        for (int i = 0; i < 64; i++) {
+            vec3 sampleVector = kernelMatrix * kernel[i];
+            vec3 samplePoint = viewPosition + (sampleVector * kernelRadius);
+
+            vec4 samplePointNDC = cameraProjectionMatrix * vec4(samplePoint, 1.0);
+            samplePointNDC /= samplePointNDC.w;
+
+            vec2 samplePointUv = samplePointNDC.xy * 0.5 + 0.5;
+
+            float realDepth = getLinearDepth(samplePointUv);
+            float sampleDepth = viewZToOrthographicDepth(samplePoint.z, zNear, zFar);
+            float delta = sampleDepth - realDepth;
+
+            if (delta > minDistance && delta < maxDistance) {
+                occlusion += 1.0;
+            }
+        }
+
+        occlusion = clamp(occlusion / 64.0, 0.0, 1.0);
+
+        gl_FragColor = vec4(vec3(occlusion), 1.0);
+    }
+
+</script>
+
+<script id="ssao-blur-vert" type="x-shader/x-vertex">
+    void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    }
+</script>
+
+<script id="ssao-blur-frag" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform sampler2D tDiffuse;
+
+    uniform float width;
+    uniform float height;
+
+    void main() {
+        vec2 textureCoordinates = vec2(gl_FragCoord.x / (width), gl_FragCoord.y / (height));
+
+        vec2 texelSize = ( 1.0 / vec2(width, height) );
+
+        float result = 0.0;
+
+        for ( int i = - 2; i <= 2; i ++ ) {
+            for ( int j = - 2; j <= 2; j ++ ) {
+                vec2 offset = ( vec2( float( i ), float( j ) ) ) * texelSize;
+                result += texture2D( tDiffuse, textureCoordinates + offset ).r;
+            }
+        }
+
+        gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
+    }
+
+</script>
+
+<script id="render-vert" type="x-shader/x-vertex">
+    varying vec3 vIncident;
+
+    void main() {
+        vIncident = normalize(position.xyz - cameraPosition.xyz);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
 </script>
 
@@ -107,12 +235,16 @@
     uniform sampler2D tFrontFaceNormal;
     uniform sampler2D tBackFaceDepth;
     uniform sampler2D tBackFaceNormal;
+    uniform sampler2D tSSAO;
+    uniform sampler2D tBlurredSSAO;
     uniform samplerCube tCube;
+
     uniform float zFar;
     uniform float zNear;
     uniform float width;
     uniform float height;
     uniform float windowDeviceRatio;
+
     uniform int renderFeature;
 
     varying vec3 vIncident;
@@ -157,8 +289,15 @@
         // Calculate depth effect
         float colorDepth = (backFaceDepth - frontFaceDepth);
 
+        // Calculate SSAO effect
+        vec4 occlusion = texture2D(tSSAO, textureCoordinates);
+        vec4 blurredOcclusion = texture2D(tBlurredSSAO, textureCoordinates);
+
         if (renderFeature == 0) {
-            gl_FragColor = mix(mix(colorReflection, colorRefraction, 0.6), vec4(vec3(0.0), 1.0), colorDepth);
+            vec4 color = mix(colorReflection, colorRefraction, 0.6);
+            color = mix(color, vec4(vec3(0.0), 1.0), colorDepth);
+            color = mix(color, blurredOcclusion, 0.5);
+            gl_FragColor = color;
         } else if (renderFeature == 1) {
             gl_FragColor = vec4(backFaceNormal, 1.0);
         } else if (renderFeature == 2) {
@@ -177,6 +316,10 @@
             gl_FragColor = colorBackFaceReflection;
         } else if (renderFeature == 9) {
             gl_FragColor = colorReflection;
+        } else if (renderFeature == 10) {
+            gl_FragColor = occlusion;
+        } else if (renderFeature == 11) {
+            gl_FragColor = blurredOcclusion;
         }
     }
 
@@ -186,13 +329,13 @@
 var renderer;
 var controls;
 var camera;
-var backFaceNormalsScene, frontFaceNormalsScene, backFaceDepthScene, frontFaceDepthScene;
-var backFaceNormalsTarget, frontFaceNormalsTarget, backFaceDepthTarget, frontFaceDepthTarget;
+var backFaceNormalsScene, frontFaceNormalsScene, backFaceDepthScene, frontFaceDepthScene, ssaoScene, ssaoBlurScene;
+var backFaceNormalsTarget, frontFaceNormalsTarget, backFaceDepthTarget, frontFaceDepthTarget, ssaoTarget, ssaoBlurTarget;
 var postScene;
 var postMaterial;
 var geometry;
 var renderFeatures = {
-    0: "Back-/Frontface Refraction, Reflection and Depth",
+    0: "Back-/Frontface Refraction, Reflection, SSAO and Depth",
     1: "Backface Normals",
     2: "Backface Depth",
     3: "Frontface Normals",
@@ -201,9 +344,11 @@ var renderFeatures = {
     6: "Backface Refraction",
     7: "Frontface Refraction",
     8: "Backface Reflection",
-    9: "Frontface Reflection"
+    9: "Frontface Reflection",
+    10: "Screen-Space Ambient Occlusion (SSAO)",
+    11: "Final SSAO (Blurred)"
 };
-const maxRenderFeatures = 10;
+const maxRenderFeatures = 12;
 $("#pass-button").text(renderFeatures[0]);
 
 $(document).ready(function() {
@@ -229,9 +374,9 @@ function init() {
     const zNear = 1.0;
     const zFar = 40.0;
 
-    renderer = new THREE.WebGLRenderer({alpha: true});
+    renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
 
-    // renderer.setPixelRatio( window.deviceRatio );
+    //renderer.setPixelRatio( window.deviceRatio );
     renderer.setSize( width, height );
     document.body.appendChild(renderer.domElement);
 
@@ -249,12 +394,16 @@ function init() {
     frontFaceNormalsTarget = new THREE.WebGLRenderTarget(width, height);
     backFaceDepthTarget = new THREE.WebGLRenderTarget(width, height);
     frontFaceDepthTarget = new THREE.WebGLRenderTarget(width, height);
+    ssaoTarget = new THREE.WebGLRenderTarget(width, height);
+    ssaoBlurTarget = new THREE.WebGLRenderTarget(width, height);
 
     backFaceNormalsScene = new THREE.Scene();
     frontFaceNormalsScene = new THREE.Scene();
     backFaceDepthScene = new THREE.Scene();
     frontFaceDepthScene = new THREE.Scene();
     postScene = new THREE.Scene();
+    ssaoScene = new THREE.Scene();
+    ssaoBlurScene = new THREE.Scene();
 
     const radius = 3.5;
     const tube = 1.5;
@@ -264,19 +413,17 @@ function init() {
     const q = 3;
     geometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments, p, q);
 
-    // geometry = new THREE.BoxGeometry(10, 10, 10);
-    //geometry = new THREE.SphereGeometry(10, 10, 10);
+    var frontFaceDepthMaterial = new THREE.ShaderMaterial({
+        side: THREE.FrontSide,
+        uniforms: {
+            zNear: { value: zNear },
+            zFar: { value: zFar }
+        },
+        vertexShader: document.querySelector('#depth-vert').textContent.trim(),
+        fragmentShader: document.querySelector('#depth-frag').textContent.trim()
+    });
 
-    var frontFaceDepthMaterial = new THREE.RawShaderMaterial({
-        side: THREE.FrontSide,
-        uniforms: {
-            zNear: { value: zNear },
-            zFar: { value: zFar }
-        },
-        vertexShader: document.querySelector('#depth-vert').textContent.trim(),
-        fragmentShader: document.querySelector('#depth-frag').textContent.trim()
-    });
-    var backFaceDepthMaterial = new THREE.RawShaderMaterial({
+    var backFaceDepthMaterial = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         uniforms: {
             zNear: { value: zNear },
@@ -285,19 +432,52 @@ function init() {
         vertexShader: document.querySelector('#depth-vert').textContent.trim(),
         fragmentShader: document.querySelector('#depth-frag').textContent.trim()
     });
-    var frontFaceNormalsMaterial = new THREE.RawShaderMaterial({
+
+    var frontFaceNormalsMaterial = new THREE.ShaderMaterial({
         side: THREE.FrontSide,
         uniforms: {},
         vertexShader: document.querySelector('#normals-vert').textContent.trim(),
         fragmentShader: document.querySelector('#normals-frag').textContent.trim()
     });
-    var backFaceNormalsMaterial = new THREE.RawShaderMaterial({
+
+    var backFaceNormalsMaterial = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         uniforms: {},
         vertexShader: document.querySelector('#normals-vert').textContent.trim(),
         fragmentShader: document.querySelector('#normals-frag').textContent.trim()
     });
-    postMaterial = new THREE.RawShaderMaterial({
+
+    var ssaoMaterial = new THREE.ShaderMaterial({
+        side: THREE.FrontSide,
+        uniforms: {
+            zNear: { value: zNear },
+            zFar: { value: zFar },
+            width: { value: window.innerWidth },
+            height: { value: window.innerHeight },
+            tDepth: { value: frontFaceDepthTarget.texture },
+            tNormal: { value: frontFaceNormalsTarget.texture },
+            tNoise: { value: generateRandomKernelRotations() },
+            tCube: { value: cubeLoader },
+            kernel: { value: generateSampleKernel() },
+            cameraProjectionMatrix: { value: camera.projectionMatrix },
+            cameraInverseProjectionMatrix: { value: camera.projectionMatrixInverse }
+        },
+        vertexShader: document.querySelector("#ssao-vert").textContent.trim(),
+        fragmentShader: document.querySelector("#ssao-frag").textContent.trim()
+    });
+
+    var ssaoBlurMaterial = new THREE.ShaderMaterial({
+        side: THREE.FrontSide,
+        uniforms: {
+            tDiffuse: { value: ssaoTarget.texture },
+            width: { value: window.innerWidth },
+            height: { value: window.innerHeight },
+        },
+        vertexShader: document.querySelector("#ssao-blur-vert").textContent.trim(),
+        fragmentShader: document.querySelector("#ssao-blur-frag").textContent.trim()
+    });
+
+    postMaterial = new THREE.ShaderMaterial({
         vertexShader: document.querySelector('#render-vert').textContent.trim(),
         fragmentShader: document.querySelector('#render-frag').textContent.trim(),
         uniforms: {
@@ -309,22 +489,28 @@ function init() {
             tFrontFaceNormal: { value: frontFaceNormalsTarget.texture },
             tBackFaceDepth: { value: backFaceDepthTarget.texture },
             tBackFaceNormal: { value: backFaceNormalsTarget.texture },
+            tSSAO: { value: ssaoTarget.texture },
+            tBlurredSSAO: { value: ssaoBlurTarget.texture },
             tCube: { value: cubeLoader },
             renderFeature: {value: 0}
         }
     });
 
-    var frontFaceNormalTorus = new THREE.Mesh(geometry, frontFaceNormalsMaterial);
-    var backFaceNormalTorus = new THREE.Mesh(geometry, backFaceNormalsMaterial);
-    var frontFaceDepthTorus = new THREE.Mesh(geometry, frontFaceDepthMaterial);
-    var backFaceDepthTorus = new THREE.Mesh(geometry, backFaceDepthMaterial);
-    var postSceneTorus = new THREE.Mesh(geometry, postMaterial);
+    var frontFaceNormalMesh = new THREE.Mesh(geometry, frontFaceNormalsMaterial);
+    var backFaceNormalMesh = new THREE.Mesh(geometry, backFaceNormalsMaterial);
+    var frontFaceDepthMesh = new THREE.Mesh(geometry, frontFaceDepthMaterial);
+    var backFaceDepthMesh = new THREE.Mesh(geometry, backFaceDepthMaterial);
+    var ssaoMesh = new THREE.Mesh(geometry, ssaoMaterial);
+    var ssaoBlurMesh = new THREE.Mesh(geometry, ssaoBlurMaterial);
+    var postSceneMesh = new THREE.Mesh(geometry, postMaterial);
 
-    frontFaceNormalsScene.add(frontFaceNormalTorus);
-    backFaceNormalsScene.add(backFaceNormalTorus);
-    frontFaceDepthScene.add(frontFaceDepthTorus);
-    backFaceDepthScene.add(backFaceDepthTorus);
-    postScene.add(postSceneTorus);
+    frontFaceNormalsScene.add(frontFaceNormalMesh);
+    backFaceNormalsScene.add(backFaceNormalMesh);
+    frontFaceDepthScene.add(frontFaceDepthMesh);
+    backFaceDepthScene.add(backFaceDepthMesh);
+    ssaoScene.add(ssaoMesh);
+    ssaoBlurScene.add(ssaoBlurMesh);
+    postScene.add(postSceneMesh);
 
     postScene.background = cubeLoader;
 
@@ -341,6 +527,8 @@ function onWindowResize() {
     frontFaceDepthTarget.setSize( window.innerWidth * dpr, window.innerHeight * dpr );
     backFaceNormalsTarget.setSize( window.innerWidth * dpr, window.innerHeight * dpr );
     backFaceDepthTarget.setSize( window.innerWidth * dpr, window.innerHeight * dpr );
+    ssaoTarget.setSize( window.innerWidth * dpr, window.innerHeight * dpr );
+    ssaoBlurTarget.setSize( window.innerWidth * dpr, window.innerHeight * dpr );
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
@@ -358,10 +546,59 @@ function animate() {
     renderer.render( frontFaceNormalsScene, camera, frontFaceNormalsTarget, true);
     renderer.render( backFaceDepthScene, camera, backFaceDepthTarget, true);
     renderer.render( backFaceNormalsScene, camera, backFaceNormalsTarget, true);
+    renderer.render( ssaoScene, camera, ssaoTarget, true);
+    renderer.render( ssaoBlurScene, camera, ssaoBlurTarget, true );
     renderer.render( postScene, camera );
 
     requestAnimationFrame( animate );
 
 }
+
+function generateSampleKernel() {
+    var kernelSize = 64;
+    var kernel = [];
+
+    for (var i = 0; i < kernelSize; i++) {
+        var sample = new THREE.Vector3();
+        sample.x = (Math.random() * 2) - 1;
+        sample.y = (Math.random() * 2) - 1;
+        sample.z = Math.random();
+        sample.normalize();
+        var scale = i / kernelSize;
+        scale = THREE.Math.lerp(0.1, 1, scale * scale);
+        sample.multiplyScalar(scale);
+        kernel.push(sample);
+    }
+
+    return kernel;
+}
+
+function generateRandomKernelRotations () {
+		var width = 4, height = 4;
+
+		if ( SimplexNoise === undefined ) {
+			console.error( 'THREE.SSAOPass: The pass relies on THREE.SimplexNoise.' );
+		}
+
+		var simplex = new SimplexNoise();
+		var size = width * height;
+		var data = new Float32Array( size );
+
+		for ( var i = 0; i < size; i ++ ) {
+
+			var x = ( Math.random() * 2 ) - 1;
+			var y = ( Math.random() * 2 ) - 1;
+			var z = 0;
+
+			data[ i ] = simplex.noise3d( x, y, z );
+
+		}
+
+		var noiseTexture = new THREE.DataTexture( data, width, height, THREE.LuminanceFormat, THREE.FloatType );
+		noiseTexture.wrapS = THREE.RepeatWrapping;
+		noiseTexture.wrapT = THREE.RepeatWrapping;
+		noiseTexture.needsUpdate = true;
+        return noiseTexture;
+	}
 
 </script>
