@@ -6,11 +6,11 @@
 
 <div style="position: fixed; bottom: 10px; right: 10px;">
     <button style="display: inline-block; margin-top: 20px;"
-            onclick="showNextQuestion()"
-            class="btn btn-dark rounded-pill bg-black border-animation">Nächste Frage</button>
+            onclick="quizMaster.showNextQuestion()"
+            class="btn btn-xl btn-dark rounded-pill bg-black border-animation">Nächste Frage</button>
     <button style="display: inline-block; margin-top: 20px;"
-            onclick="showAnswer()"
-            class="btn btn-dark rounded-pill bg-black border-animation">Antwort zeigen</button>
+            onclick="quizMaster.showAnswer()"
+            class="btn btn-xl btn-dark rounded-pill bg-black border-animation">Antwort zeigen</button>
 </div>
 
 <div style="margin: 20px 20px 100px; background-color: white; border-radius: 5px;">
@@ -27,8 +27,85 @@
 
 
 <script src="../assets/js/jquery-3.3.1.min.js"></script>
+<script src="../assets/js/js.cookie-2.2.0.min.js"></script>
 <script src="../assets/js/bootstrap.min.js"></script>
 <script>
+
+    class State {
+        constructor(id) {
+            this.id = id;
+        }
+
+        equals(otherState) {
+            return this.id === otherState.id;
+        }
+    }
+
+
+    class CompleteState extends State {
+        constructor() {
+            super("complete");
+        }
+    }
+
+
+    class HalfCompleteState extends State {
+        constructor() {
+            super("halfcomplete");
+        }
+    }
+
+
+    class IncompleteState extends State {
+        constructor() {
+            super("incomplete");
+        }
+    }
+
+
+    class Quizmaster {
+        constructor() {
+            let questionnaireJSON = Cookies.get("questionnaire");
+            if (questionnaireJSON !== undefined) {
+                this.questionnaire = JSON.parse(questionnaireJSON);
+                console.log("Loaded questionnaire from cookies!");
+            } else {
+                this.questionnaire = Question.all();
+                questionnaireJSON = JSON.stringify(this.questionnaire);
+                Cookies.set("questionnaire", questionnaireJSON);
+                console.log("Had to reload questionnaire completely!");
+            }
+            this.current = 0;
+            this.questionnaire = this.shuffle(this.questionnaire);
+            this.showNextQuestion()
+        }
+
+        showNextQuestion() {
+            this.current = (this.current + 1) % this.questionnaire.length;
+            this.questionnaire[this.current].showQuestion();
+        }
+
+        showAnswer() {
+            this.questionnaire[this.current].showAnswer();
+        }
+
+        /**
+         * Shuffles array in place.
+         * @param {Array} a items An array containing the items.
+         */
+        shuffle(a) {
+            var j, x, i;
+            for (i = a.length - 1; i > 0; i--) {
+                j = Math.floor(Math.random() * (i + 1));
+                x = a[i];
+                a[i] = a[j];
+                a[j] = x;
+            }
+            return a;
+        }
+    }
+
+
     class Question {
 
         static all() {
@@ -36,13 +113,14 @@
             let questions = ["question_0.png", "question_1.png", "question_10.png", "question_100.png", "question_101.png", "question_102.png", "question_103.png", "question_104.png", "question_105.png", "question_106.png", "question_107.png", "question_108.png", "question_109.png", "question_11.png", "question_110.png", "question_111.png", "question_112.png", "question_113.png", "question_114.png", "question_115.png", "question_116.png", "question_117.png", "question_118.png", "question_119.png", "question_12.png", "question_120.png", "question_121.png", "question_122.png", "question_123.png", "question_124.png", "question_125.png", "question_126.png", "question_127.png", "question_128.png", "question_129.png", "question_13.png", "question_130.png", "question_131.png", "question_132.png", "question_133.png", "question_134.png", "question_135.png", "question_136.png", "question_137.png", "question_138.png", "question_139.png", "question_14.png", "question_140.png", "question_141.png", "question_142.png", "question_143.png", "question_144.png", "question_145.png", "question_146.png", "question_147.png", "question_148.png", "question_149.png", "question_15.png", "question_150.png", "question_151.png", "question_152.png", "question_153.png", "question_154.png", "question_155.png", "question_156.png", "question_157.png", "question_158.png", "question_159.png", "question_16.png", "question_160.png", "question_161.png", "question_162.png", "question_163.png", "question_164.png", "question_165.png", "question_166.png", "question_167.png", "question_168.png", "question_169.png", "question_17.png", "question_170.png", "question_171.png", "question_172.png", "question_173.png", "question_174.png", "question_175.png", "question_176.png", "question_177.png", "question_178.png", "question_179.png", "question_18.png", "question_180.png", "question_181.png", "question_182.png", "question_183.png", "question_184.png", "question_185.png", "question_186.png", "question_187.png", "question_188.png", "question_189.png", "question_19.png", "question_190.png", "question_191.png", "question_192.png", "question_193.png", "question_194.png", "question_195.png", "question_2.png", "question_20.png", "question_21.png", "question_22.png", "question_23.png", "question_24.png", "question_25.png", "question_26.png", "question_27.png", "question_28.png", "question_29.png", "question_3.png", "question_30.png", "question_31.png", "question_32.png", "question_33.png", "question_34.png", "question_35.png", "question_36.png", "question_37.png", "question_38.png", "question_39.png", "question_4.png", "question_40.png", "question_41.png", "question_42.png", "question_43.png", "question_44.png", "question_45.png", "question_46.png", "question_47.png", "question_48.png", "question_49.png", "question_5.png", "question_50.png", "question_51.png", "question_52.png", "question_53.png", "question_54.png", "question_55.png", "question_56.png", "question_57.png", "question_58.png", "question_59.png", "question_6.png", "question_60.png", "question_61.png", "question_62.png", "question_63.png", "question_64.png", "question_65.png", "question_66.png", "question_67.png", "question_68.png", "question_69.png", "question_7.png", "question_70.png", "question_71.png", "question_72.png", "question_73.png", "question_74.png", "question_75.png", "question_76.png", "question_77.png", "question_78.png", "question_79.png", "question_8.png", "question_80.png", "question_81.png", "question_82.png", "question_83.png", "question_84.png", "question_85.png", "question_86.png", "question_87.png", "question_88.png", "question_89.png", "question_9.png", "question_90.png", "question_91.png", "question_92.png", "question_93.png", "question_94.png", "question_95.png", "question_96.png", "question_97.png", "question_98.png", "question_99.png"];
             let dir = "../assets/img/questionnaire-mibi/";
             return questions.map(function(e, i) {
-               return new Question(dir + e, dir + answers[i]);
+               return new Question(dir + e, dir + answers[i], new IncompleteState());
             });
         }
 
-        constructor(imgQuestion, imgAnswer) {
+        constructor(imgQuestion, imgAnswer, state) {
             this.imgQuestion = imgQuestion;
             this.imgAnswer = imgAnswer;
+            this.state = state;
         }
 
         showQuestion() {
@@ -56,32 +134,6 @@
         }
     }
 
-    /**
-     * Shuffles array in place.
-     * @param {Array} a items An array containing the items.
-     */
-    function shuffle(a) {
-        var j, x, i;
-        for (i = a.length - 1; i > 0; i--) {
-            j = Math.floor(Math.random() * (i + 1));
-            x = a[i];
-            a[i] = a[j];
-            a[j] = x;
-        }
-        return a;
-    }
-
-    let questions = shuffle(Question.all());
-    let current = 0;
-    questions[current].showQuestion();
-
-    function showNextQuestion() {
-        current = (current + 1) % questions.length;
-        questions[current].showQuestion();
-    }
-
-    function showAnswer() {
-        questions[current].showAnswer();
-    }
+    let quizMaster = new Quizmaster();
 
 </script>
