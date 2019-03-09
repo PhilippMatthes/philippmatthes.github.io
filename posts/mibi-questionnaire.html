@@ -2,18 +2,30 @@
 <link href="../assets/css/philippmatthes.css" rel="stylesheet">
 <link href="../assets/css/roboto.css" rel="stylesheet">
 
-<body style="width: 100%; height: 100%; border-radius: 5px;" class="bg-blue-dark">
+<body style="width: 100%; height: 100%; border-radius: 5px;" class="bg-dark">
 
 <div style="position: fixed; bottom: 10px; right: 10px;">
     <button style="display: inline-block; margin-top: 20px;"
-            onclick="quizMaster.showNextQuestion()"
-            class="btn btn-xl btn-dark rounded-pill bg-black border-animation">Nächste Frage</button>
+            onclick="quizMaster.rateAndDismissQuestion('p')"
+            class="btn btn-xl btn-dark rounded-pill bg-green border-animation">
+        <span class="badge badge-pill badge-dark" id="passed">0</span>  Weiß ich
+    </button>
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="quizMaster.rateAndDismissQuestion('h')"
+            class="btn btn-xl btn-dark rounded-pill bg-yellow border-animation">
+       <span class="badge badge-pill badge-dark" id="half-passed">0</span>  Meh...
+    </button>
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="quizMaster.rateAndDismissQuestion('f')"
+            class="btn btn-xl btn-dark rounded-pill bg-red border-animation">
+        <span class="badge badge-pill badge-dark" id="failed">0</span>  Kein Plan
+    </button>
     <button style="display: inline-block; margin-top: 20px;"
             onclick="quizMaster.showAnswer()"
             class="btn btn-xl btn-dark rounded-pill bg-black border-animation">Antwort zeigen</button>
 </div>
 
-<div style="margin: 20px 20px 100px; background-color: white; border-radius: 5px;">
+<div style="margin: 20px 20px 100px; background-color: white; border-radius: 5px; border-width: 5px; border-style: solid;" id="question-background">
     <img id="question"
      style="display: block; margin-left:auto; margin-right:auto; max-width: 100%; max-height: 30%; padding-top: 20px; border-radius: 5px;"
      src="">
@@ -28,73 +40,53 @@
 
 <script src="../assets/js/jquery-3.3.1.min.js"></script>
 <script src="../assets/js/js.cookie-2.2.0.min.js"></script>
+<script src="../assets/js/rusha.min.js"></script>
 <script src="../assets/js/bootstrap.min.js"></script>
 <script>
 
-    class State {
-        constructor(id) {
-            this.id = id;
-        }
-
-        equals(otherState) {
-            return this.id === otherState.id;
-        }
-    }
-
-
-    class CompleteState extends State {
-        constructor() {
-            super("complete");
-        }
-    }
-
-
-    class HalfCompleteState extends State {
-        constructor() {
-            super("halfcomplete");
-        }
-    }
-
-
-    class IncompleteState extends State {
-        constructor() {
-            super("incomplete");
-        }
-    }
-
-
     class Quizmaster {
         constructor() {
-            let questionnaireJSON = Cookies.get("questionnaire");
-            if (questionnaireJSON !== undefined) {
-                this.questionnaire = JSON.parse(questionnaireJSON);
-                console.log("Loaded questionnaire from cookies!");
-            } else {
-                this.questionnaire = Question.all();
-                questionnaireJSON = JSON.stringify(this.questionnaire);
-                Cookies.set("questionnaire", questionnaireJSON);
-                console.log("Had to reload questionnaire completely!");
-            }
+            this.questionnaire = Quizmaster.shuffle(Question.all());
             this.current = 0;
-            this.questionnaire = this.shuffle(this.questionnaire);
-            this.showNextQuestion()
+            this.showNextQuestion();
+            this.updateRatingButtons();
+        }
+
+        get currentQuestion() {
+            return new InflatableQuestion(this.questionnaire[this.current]);
+        }
+
+        rateAndDismissQuestion(rating) {
+            this.currentQuestion.rate(rating);
+            this.questionnaire[this.current].rating = rating;
+            this.updateRatingButtons();
+            this.showNextQuestion();
+            this.updateRatingButtons();
+        }
+
+        updateRatingButtons() {
+            $("#passed").text(this.questionnaire.filter(q => q.rating === "p").length);
+            $("#half-passed").text(this.questionnaire.filter(q => q.rating === "h").length);
+            $("#failed").text(this.questionnaire.filter(q => q.rating === "f").length);
         }
 
         showNextQuestion() {
             this.current = (this.current + 1) % this.questionnaire.length;
-            this.questionnaire[this.current].showQuestion();
+            let question = this.questionnaire[this.current];
+            new InflatableQuestion(question).showQuestion();
         }
 
         showAnswer() {
-            this.questionnaire[this.current].showAnswer();
+            let question = this.questionnaire[this.current];
+            new InflatableQuestion(question).showAnswer();
         }
 
         /**
          * Shuffles array in place.
          * @param {Array} a items An array containing the items.
          */
-        shuffle(a) {
-            var j, x, i;
+        static shuffle(a) {
+            let j, x, i;
             for (i = a.length - 1; i > 0; i--) {
                 j = Math.floor(Math.random() * (i + 1));
                 x = a[i];
@@ -105,35 +97,65 @@
         }
     }
 
-
     class Question {
 
         static all() {
-            let answers = ["answer_0.png", "answer_1.png", "answer_10.png", "answer_100.png", "answer_101.png", "answer_102.png", "answer_103.png", "answer_104.png", "answer_105.png", "answer_106.png", "answer_107.png", "answer_108.png", "answer_109.png", "answer_11.png", "answer_110.png", "answer_111.png", "answer_112.png", "answer_113.png", "answer_114.png", "answer_115.png", "answer_116.png", "answer_117.png", "answer_118.png", "answer_119.png", "answer_12.png", "answer_120.png", "answer_121.png", "answer_122.png", "answer_123.png", "answer_124.png", "answer_125.png", "answer_126.png", "answer_127.png", "answer_128.png", "answer_129.png", "answer_13.png", "answer_130.png", "answer_131.png", "answer_132.png", "answer_133.png", "answer_134.png", "answer_135.png", "answer_136.png", "answer_137.png", "answer_138.png", "answer_139.png", "answer_14.png", "answer_140.png", "answer_141.png", "answer_142.png", "answer_143.png", "answer_144.png", "answer_145.png", "answer_146.png", "answer_147.png", "answer_148.png", "answer_149.png", "answer_15.png", "answer_150.png", "answer_151.png", "answer_152.png", "answer_153.png", "answer_154.png", "answer_155.png", "answer_156.png", "answer_157.png", "answer_158.png", "answer_159.png", "answer_16.png", "answer_160.png", "answer_161.png", "answer_162.png", "answer_163.png", "answer_164.png", "answer_165.png", "answer_166.png", "answer_167.png", "answer_168.png", "answer_169.png", "answer_17.png", "answer_170.png", "answer_171.png", "answer_172.png", "answer_173.png", "answer_174.png", "answer_175.png", "answer_176.png", "answer_177.png", "answer_178.png", "answer_179.png", "answer_18.png", "answer_180.png", "answer_181.png", "answer_182.png", "answer_183.png", "answer_184.png", "answer_185.png", "answer_186.png", "answer_187.png", "answer_188.png", "answer_189.png", "answer_19.png", "answer_190.png", "answer_191.png", "answer_192.png", "answer_193.png", "answer_194.png", "answer_195.png", "answer_2.png", "answer_20.png", "answer_21.png", "answer_22.png", "answer_23.png", "answer_24.png", "answer_25.png", "answer_26.png", "answer_27.png", "answer_28.png", "answer_29.png", "answer_3.png", "answer_30.png", "answer_31.png", "answer_32.png", "answer_33.png", "answer_34.png", "answer_35.png", "answer_36.png", "answer_37.png", "answer_38.png", "answer_39.png", "answer_4.png", "answer_40.png", "answer_41.png", "answer_42.png", "answer_43.png", "answer_44.png", "answer_45.png", "answer_46.png", "answer_47.png", "answer_48.png", "answer_49.png", "answer_5.png", "answer_50.png", "answer_51.png", "answer_52.png", "answer_53.png", "answer_54.png", "answer_55.png", "answer_56.png", "answer_57.png", "answer_58.png", "answer_59.png", "answer_6.png", "answer_60.png", "answer_61.png", "answer_62.png", "answer_63.png", "answer_64.png", "answer_65.png", "answer_66.png", "answer_67.png", "answer_68.png", "answer_69.png", "answer_7.png", "answer_70.png", "answer_71.png", "answer_72.png", "answer_73.png", "answer_74.png", "answer_75.png", "answer_76.png", "answer_77.png", "answer_78.png", "answer_79.png", "answer_8.png", "answer_80.png", "answer_81.png", "answer_82.png", "answer_83.png", "answer_84.png", "answer_85.png", "answer_86.png", "answer_87.png", "answer_88.png", "answer_89.png", "answer_9.png", "answer_90.png", "answer_91.png", "answer_92.png", "answer_93.png", "answer_94.png", "answer_95.png", "answer_96.png", "answer_97.png", "answer_98.png", "answer_99.png"];
-            let questions = ["question_0.png", "question_1.png", "question_10.png", "question_100.png", "question_101.png", "question_102.png", "question_103.png", "question_104.png", "question_105.png", "question_106.png", "question_107.png", "question_108.png", "question_109.png", "question_11.png", "question_110.png", "question_111.png", "question_112.png", "question_113.png", "question_114.png", "question_115.png", "question_116.png", "question_117.png", "question_118.png", "question_119.png", "question_12.png", "question_120.png", "question_121.png", "question_122.png", "question_123.png", "question_124.png", "question_125.png", "question_126.png", "question_127.png", "question_128.png", "question_129.png", "question_13.png", "question_130.png", "question_131.png", "question_132.png", "question_133.png", "question_134.png", "question_135.png", "question_136.png", "question_137.png", "question_138.png", "question_139.png", "question_14.png", "question_140.png", "question_141.png", "question_142.png", "question_143.png", "question_144.png", "question_145.png", "question_146.png", "question_147.png", "question_148.png", "question_149.png", "question_15.png", "question_150.png", "question_151.png", "question_152.png", "question_153.png", "question_154.png", "question_155.png", "question_156.png", "question_157.png", "question_158.png", "question_159.png", "question_16.png", "question_160.png", "question_161.png", "question_162.png", "question_163.png", "question_164.png", "question_165.png", "question_166.png", "question_167.png", "question_168.png", "question_169.png", "question_17.png", "question_170.png", "question_171.png", "question_172.png", "question_173.png", "question_174.png", "question_175.png", "question_176.png", "question_177.png", "question_178.png", "question_179.png", "question_18.png", "question_180.png", "question_181.png", "question_182.png", "question_183.png", "question_184.png", "question_185.png", "question_186.png", "question_187.png", "question_188.png", "question_189.png", "question_19.png", "question_190.png", "question_191.png", "question_192.png", "question_193.png", "question_194.png", "question_195.png", "question_2.png", "question_20.png", "question_21.png", "question_22.png", "question_23.png", "question_24.png", "question_25.png", "question_26.png", "question_27.png", "question_28.png", "question_29.png", "question_3.png", "question_30.png", "question_31.png", "question_32.png", "question_33.png", "question_34.png", "question_35.png", "question_36.png", "question_37.png", "question_38.png", "question_39.png", "question_4.png", "question_40.png", "question_41.png", "question_42.png", "question_43.png", "question_44.png", "question_45.png", "question_46.png", "question_47.png", "question_48.png", "question_49.png", "question_5.png", "question_50.png", "question_51.png", "question_52.png", "question_53.png", "question_54.png", "question_55.png", "question_56.png", "question_57.png", "question_58.png", "question_59.png", "question_6.png", "question_60.png", "question_61.png", "question_62.png", "question_63.png", "question_64.png", "question_65.png", "question_66.png", "question_67.png", "question_68.png", "question_69.png", "question_7.png", "question_70.png", "question_71.png", "question_72.png", "question_73.png", "question_74.png", "question_75.png", "question_76.png", "question_77.png", "question_78.png", "question_79.png", "question_8.png", "question_80.png", "question_81.png", "question_82.png", "question_83.png", "question_84.png", "question_85.png", "question_86.png", "question_87.png", "question_88.png", "question_89.png", "question_9.png", "question_90.png", "question_91.png", "question_92.png", "question_93.png", "question_94.png", "question_95.png", "question_96.png", "question_97.png", "question_98.png", "question_99.png"];
-            let dir = "../assets/img/questionnaire-mibi/";
+            let answers = ["a_0.png", "a_1.png", "a_10.png", "a_100.png", "a_101.png", "a_102.png", "a_103.png", "a_104.png", "a_105.png", "a_106.png", "a_107.png", "a_108.png", "a_109.png", "a_11.png", "a_110.png", "a_111.png", "a_112.png", "a_113.png", "a_114.png", "a_115.png", "a_116.png", "a_117.png", "a_118.png", "a_119.png", "a_12.png", "a_120.png", "a_121.png", "a_122.png", "a_123.png", "a_124.png", "a_125.png", "a_126.png", "a_127.png", "a_128.png", "a_129.png", "a_13.png", "a_130.png", "a_131.png", "a_132.png", "a_133.png", "a_134.png", "a_135.png", "a_136.png", "a_137.png", "a_138.png", "a_139.png", "a_14.png", "a_140.png", "a_141.png", "a_142.png", "a_143.png", "a_144.png", "a_145.png", "a_146.png", "a_147.png", "a_148.png", "a_149.png", "a_15.png", "a_150.png", "a_151.png", "a_152.png", "a_153.png", "a_154.png", "a_155.png", "a_156.png", "a_157.png", "a_158.png", "a_159.png", "a_16.png", "a_160.png", "a_161.png", "a_162.png", "a_163.png", "a_164.png", "a_165.png", "a_166.png", "a_167.png", "a_168.png", "a_169.png", "a_17.png", "a_170.png", "a_171.png", "a_172.png", "a_173.png", "a_174.png", "a_175.png", "a_176.png", "a_177.png", "a_178.png", "a_179.png", "a_18.png", "a_180.png", "a_181.png", "a_182.png", "a_183.png", "a_184.png", "a_185.png", "a_186.png", "a_187.png", "a_188.png", "a_189.png", "a_19.png", "a_190.png", "a_191.png", "a_192.png", "a_193.png", "a_194.png", "a_195.png", "a_2.png", "a_20.png", "a_21.png", "a_22.png", "a_23.png", "a_24.png", "a_25.png", "a_26.png", "a_27.png", "a_28.png", "a_29.png", "a_3.png", "a_30.png", "a_31.png", "a_32.png", "a_33.png", "a_34.png", "a_35.png", "a_36.png", "a_37.png", "a_38.png", "a_39.png", "a_4.png", "a_40.png", "a_41.png", "a_42.png", "a_43.png", "a_44.png", "a_45.png", "a_46.png", "a_47.png", "a_48.png", "a_49.png", "a_5.png", "a_50.png", "a_51.png", "a_52.png", "a_53.png", "a_54.png", "a_55.png", "a_56.png", "a_57.png", "a_58.png", "a_59.png", "a_6.png", "a_60.png", "a_61.png", "a_62.png", "a_63.png", "a_64.png", "a_65.png", "a_66.png", "a_67.png", "a_68.png", "a_69.png", "a_7.png", "a_70.png", "a_71.png", "a_72.png", "a_73.png", "a_74.png", "a_75.png", "a_76.png", "a_77.png", "a_78.png", "a_79.png", "a_8.png", "a_80.png", "a_81.png", "a_82.png", "a_83.png", "a_84.png", "a_85.png", "a_86.png", "a_87.png", "a_88.png", "a_89.png", "a_9.png", "a_90.png", "a_91.png", "a_92.png", "a_93.png", "a_94.png", "a_95.png", "a_96.png", "a_97.png", "a_98.png", "a_99.png"];
+            let questions = ["q_0.png", "q_1.png", "q_10.png", "q_100.png", "q_101.png", "q_102.png", "q_103.png", "q_104.png", "q_105.png", "q_106.png", "q_107.png", "q_108.png", "q_109.png", "q_11.png", "q_110.png", "q_111.png", "q_112.png", "q_113.png", "q_114.png", "q_115.png", "q_116.png", "q_117.png", "q_118.png", "q_119.png", "q_12.png", "q_120.png", "q_121.png", "q_122.png", "q_123.png", "q_124.png", "q_125.png", "q_126.png", "q_127.png", "q_128.png", "q_129.png", "q_13.png", "q_130.png", "q_131.png", "q_132.png", "q_133.png", "q_134.png", "q_135.png", "q_136.png", "q_137.png", "q_138.png", "q_139.png", "q_14.png", "q_140.png", "q_141.png", "q_142.png", "q_143.png", "q_144.png", "q_145.png", "q_146.png", "q_147.png", "q_148.png", "q_149.png", "q_15.png", "q_150.png", "q_151.png", "q_152.png", "q_153.png", "q_154.png", "q_155.png", "q_156.png", "q_157.png", "q_158.png", "q_159.png", "q_16.png", "q_160.png", "q_161.png", "q_162.png", "q_163.png", "q_164.png", "q_165.png", "q_166.png", "q_167.png", "q_168.png", "q_169.png", "q_17.png", "q_170.png", "q_171.png", "q_172.png", "q_173.png", "q_174.png", "q_175.png", "q_176.png", "q_177.png", "q_178.png", "q_179.png", "q_18.png", "q_180.png", "q_181.png", "q_182.png", "q_183.png", "q_184.png", "q_185.png", "q_186.png", "q_187.png", "q_188.png", "q_189.png", "q_19.png", "q_190.png", "q_191.png", "q_192.png", "q_193.png", "q_194.png", "q_195.png", "q_2.png", "q_20.png", "q_21.png", "q_22.png", "q_23.png", "q_24.png", "q_25.png", "q_26.png", "q_27.png", "q_28.png", "q_29.png", "q_3.png", "q_30.png", "q_31.png", "q_32.png", "q_33.png", "q_34.png", "q_35.png", "q_36.png", "q_37.png", "q_38.png", "q_39.png", "q_4.png", "q_40.png", "q_41.png", "q_42.png", "q_43.png", "q_44.png", "q_45.png", "q_46.png", "q_47.png", "q_48.png", "q_49.png", "q_5.png", "q_50.png", "q_51.png", "q_52.png", "q_53.png", "q_54.png", "q_55.png", "q_56.png", "q_57.png", "q_58.png", "q_59.png", "q_6.png", "q_60.png", "q_61.png", "q_62.png", "q_63.png", "q_64.png", "q_65.png", "q_66.png", "q_67.png", "q_68.png", "q_69.png", "q_7.png", "q_70.png", "q_71.png", "q_72.png", "q_73.png", "q_74.png", "q_75.png", "q_76.png", "q_77.png", "q_78.png", "q_79.png", "q_8.png", "q_80.png", "q_81.png", "q_82.png", "q_83.png", "q_84.png", "q_85.png", "q_86.png", "q_87.png", "q_88.png", "q_89.png", "q_9.png", "q_90.png", "q_91.png", "q_92.png", "q_93.png", "q_94.png", "q_95.png", "q_96.png", "q_97.png", "q_98.png", "q_99.png"];
+            let dir = "../assets/mibi/";
             return questions.map(function(e, i) {
-               return new Question(dir + e, dir + answers[i], new IncompleteState());
+               return new Question(dir + e, dir + answers[i]);
             });
         }
 
-        constructor(imgQuestion, imgAnswer, state) {
-            this.imgQuestion = imgQuestion;
-            this.imgAnswer = imgAnswer;
-            this.state = state;
+        constructor(imgQuestion, imgAnswer) {
+            this.imgQ = imgQuestion;
+            this.imgA = imgAnswer;
+
+            this.id = rusha.digest(this.imgQ + this.imgA);
+            let rating = Cookies.get(this.id);
+            if (rating === undefined) {
+                rating = "f";
+            }
+            this.rating = rating;
         }
 
         showQuestion() {
-            $("#question").attr("src", this.imgQuestion);
+            $("#question").attr("src", this.imgQ);
             $("#answer").attr("src", "");
+            let background = $("#question-background");
+            background.removeClass();
+            if (this.rating === "f") {
+                background.addClass("border-red");
+            } else if (this.rating === "h") {
+                background.addClass("border-yellow");
+            } else if (this.rating === "p") {
+                background.addClass("border-green");
+            }
         }
 
         showAnswer() {
-            $("#question").attr("src", this.imgQuestion);
-            $("#answer").attr("src", this.imgAnswer);
+            $("#question").attr("src", this.imgQ);
+            $("#answer").attr("src", this.imgA);
+        }
+
+        rate(rating) {
+            this.rating = rating;
+            return Cookies.set(this.id, rating);
+        }
+
+        eat() {
+            Cookies.remove(this.id);
         }
     }
 
+    class InflatableQuestion extends Question {
+        constructor(jsonOrQuestion) {
+            super(jsonOrQuestion.imgQ, jsonOrQuestion.imgA);
+        }
+    }
+
+    let rusha = new Rusha();
     let quizMaster = new Quizmaster();
 
 </script>

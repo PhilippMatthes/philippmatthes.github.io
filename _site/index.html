@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>philippmatthes.github.io</title>
+
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/philippmatthes.css" rel="stylesheet">
+
+    <link href="assets/css/roboto.css" rel="stylesheet">
+
+  </head>
+
+  <body>
+
+    <header data-target="color-trigger" class="masthead text-center text-white">
+      <div class="masthead-content">
+        <div class="container">
+          <h1 class="masthead-heading mb-0">My Playground.</h1>
+          <h2 class="masthead-subheading mb-0">Fun projects and more.</h2>
+          <a href="https://philippmatth.es" class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation">Homepage</a>
+        </div>
+      </div>
+      <div class="bg-circle-1 bg-circle bg-yellow"></div>
+      <div class="bg-circle-2 bg-circle bg-green"></div>
+      <div class="bg-circle-3 bg-circle bg-blue-light"></div>
+      <div class="bg-circle-4 bg-circle bg-blue-dark"></div>
+    </header>
+
+    <!-- Navigation -->
+    <nav data-target="color-target" class="navbar navbar-expand-lg navbar-dark navbar-custom sticky color-target round-bottom">
+      <div class="container">
+        <a class="navbar-brand color-animation" href="#">philippmatthes.github.io</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon border-animation"></span>
+        </button>
+        <div class="collapse navbar-collapse rounded-bottom" id="navbarResponsive">
+          <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+              <a class="nav-link color-animation" href="https://philippmatth.es">Homepage</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <section>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div data-target="color-trigger" class="bg-blue-dark border-2 margin-bottom-2">
+        <div class="container border-2 text-white padding-2 text-center">
+            <p>Last update: Mar-09-2019</p>
+            <h1>(German) Interaktives Mikrobiologie-Quiz zur Mibi-Klausur WiSe 2018/2019</h1>
+                Disclaimer: Antworten können Fehler enthalten!
+        </div>
+
+        <a href="posts/mibi-questionnaire.html" target="_blank"
+           class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered margin-bottom-2">(Empfohlen) In neuem Tab öffnen</a>
+
+        <div class="container border-2 padding-2" id="load-mibi-questionnaire"></div>
+
+        <button onclick="load('posts/mibi-questionnaire.html', '#load-mibi-questionnaire', 500)"
+                class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered margin-bottom-2">(Nicht empfohlen) Hier öffnen</button>
+      </div>
+
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+      <div class="bg-blue-dark small-bubble centered"></div>
+    </section>
+
+    <section>
+      <div class="bg-green small-bubble centered"></div>
+      <div class="bg-green small-bubble centered"></div>
+      <div class="bg-green small-bubble centered"></div>
+      <div data-target="color-trigger" class="bg-green border-2 margin-bottom-2">
+        <div class="container border-2 text-white padding-2 text-center">
+            <p>Last update: Jan-11-2019</p>
+            <h1>Advanced Shading with WebGL and Three.js</h1>
+                I am grateful to show my new playground page. So what's this now?
+                This page will be used to experiment with HTML, CSS, JS and various techniques.
+                I currently attend the advanced lecture Computer Graphics 1 at TU Dresden.
+                Part of the exercise is to program stuff with OpenGL. I got very interested
+                and <a class="color-animation text-white font-weight-bold" href="https://philippmatth.es/index.php/2018/12/31/recommendation-two-interesting-approaches-to-realtime-refraction-with-opengl">read some papers on advanced realtime shading</a>.
+                I wanted to implement some of the techniques of CG1 and tried out WebGL, which is
+                very similar to OpenGL.
+        </div>
+
+        <a href="posts/fun-with-webgl.html" target="_blank"
+           class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered margin-bottom-2">Open in new tab</a>
+
+        <div class="container border-2 padding-2" id="load-fun-with-webgl"></div>
+
+        <button onclick="load('posts/fun-with-webgl.html', '#load-fun-with-webgl', 500)"
+                class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered margin-bottom-2">Load demo</button>
+
+        <div class="container border-2 text-white padding-2 text-center margin-bottom-2">
+            For this demo, I use multiple render targets to emulate a single G-Buffer. First, four
+            render passes are made, which process backface and frontface
+            normals and depth respectively, for later computation. This results in
+            four textures being rendered to frame buffers. These textures are feeded
+            back into the main shader, which uses their inherent screen-space information
+            to compute reflection and refraction. Otherwise, the scene consists
+            of a skybox loaded with six textures and a parametric torus. Both refractions
+            also take respect of chromatic aberration and simulate subsurface scattering
+            through the precomputed heightmaps. Update (25 January) - This demo now also contains
+            Screen Space Ambient Occlusion!
+        </div>
+      </div>
+
+      <div class="bg-green small-bubble centered"></div>
+      <div class="bg-green small-bubble centered"></div>
+      <div class="bg-green small-bubble centered"></div>
+    </section>
+
+    <section>
+      <div class="bg-yellow small-bubble centered"></div>
+      <div class="bg-yellow small-bubble centered"></div>
+      <div class="bg-yellow small-bubble centered"></div>
+      <div data-target="color-trigger" class="bg-yellow border-2 margin-bottom-2">
+        <div class="container border-2 text-white padding-2 text-center">
+            <h1>More posts coming soon!</h1>
+            <p>
+                Stay tuned for more posts. Meanwhile, visit my Homepage!
+            </p>
+        </div>
+        <a href="https://philippmatth.es"
+           class="btn btn-dark btn-xl rounded-pill mt-5 bg-black border-animation centered">Homepage</a>
+      </div>
+      <div class="bg-yellow small-bubble centered"></div>
+      <div class="bg-yellow small-bubble centered"></div>
+      <div class="bg-yellow small-bubble centered"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-5 bg-black">
+        <p class="m-0 text-center text-white small">
+            Verantwortlich für diese Seite:<br>
+            Philipp Matthes<br>
+            Clara-Viebig-Straße 9<br>
+            01159 Dresden<br>
+            Tel.: +49 176 42090978</p>
+      <!-- /.container -->
+    </footer>
+
+    <script src="assets/js/jquery-3.3.1.min.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+
+    <script src="assets/js/fun-with-colors.js"></script>
+    <script src="assets/js/dynamic-reload.js"></script>
+
+  </body>
+
+</html>
