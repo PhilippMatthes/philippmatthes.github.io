@@ -1,0 +1,87 @@
+<link href="../assets/css/bootstrap.min.css" rel="stylesheet">
+<link href="../assets/css/philippmatthes.css" rel="stylesheet">
+<link href="../assets/css/roboto.css" rel="stylesheet">
+
+<body style="width: 100%; height: 100%; border-radius: 5px;" class="bg-blue-dark">
+
+<div style="position: fixed; bottom: 10px; right: 10px;">
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="showNextQuestion()"
+            class="btn btn-dark rounded-pill bg-black border-animation">Nächste Frage</button>
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="showAnswer()"
+            class="btn btn-dark rounded-pill bg-black border-animation">Antwort zeigen</button>
+</div>
+
+<div style="margin: 20px 20px 100px; background-color: white; border-radius: 5px;">
+    <img id="question"
+     style="display: block; margin-left:auto; margin-right:auto; max-width: 100%; max-height: 30%; padding-top: 20px; border-radius: 5px;"
+     src="">
+
+<img id="answer"
+     style="display: block; margin-left:auto; margin-right:auto; max-width: 100%; max-height: 60%; padding-top: 20px; border-radius: 5px;"
+     src="">
+</div>
+
+</body>
+
+
+<script src="../assets/js/jquery-3.3.1.min.js"></script>
+<script src="../assets/js/bootstrap.min.js"></script>
+<script>
+    class Question {
+
+        static all() {
+            let answers = ["answer_0.png", "answer_1.png", "answer_10.png", "answer_100.png", "answer_101.png", "answer_102.png", "answer_103.png", "answer_104.png", "answer_105.png", "answer_106.png", "answer_107.png", "answer_108.png", "answer_109.png", "answer_11.png", "answer_110.png", "answer_111.png", "answer_112.png", "answer_113.png", "answer_114.png", "answer_115.png", "answer_116.png", "answer_117.png", "answer_118.png", "answer_119.png", "answer_12.png", "answer_120.png", "answer_121.png", "answer_122.png", "answer_123.png", "answer_124.png", "answer_125.png", "answer_126.png", "answer_127.png", "answer_128.png", "answer_129.png", "answer_13.png", "answer_130.png", "answer_131.png", "answer_132.png", "answer_133.png", "answer_134.png", "answer_135.png", "answer_136.png", "answer_137.png", "answer_138.png", "answer_139.png", "answer_14.png", "answer_140.png", "answer_141.png", "answer_142.png", "answer_143.png", "answer_144.png", "answer_145.png", "answer_146.png", "answer_147.png", "answer_148.png", "answer_149.png", "answer_15.png", "answer_150.png", "answer_151.png", "answer_152.png", "answer_153.png", "answer_154.png", "answer_155.png", "answer_156.png", "answer_157.png", "answer_158.png", "answer_159.png", "answer_16.png", "answer_160.png", "answer_161.png", "answer_162.png", "answer_163.png", "answer_164.png", "answer_165.png", "answer_166.png", "answer_167.png", "answer_168.png", "answer_169.png", "answer_17.png", "answer_170.png", "answer_171.png", "answer_172.png", "answer_173.png", "answer_174.png", "answer_175.png", "answer_176.png", "answer_177.png", "answer_178.png", "answer_179.png", "answer_18.png", "answer_180.png", "answer_181.png", "answer_182.png", "answer_183.png", "answer_184.png", "answer_185.png", "answer_186.png", "answer_187.png", "answer_188.png", "answer_189.png", "answer_19.png", "answer_190.png", "answer_191.png", "answer_192.png", "answer_193.png", "answer_194.png", "answer_195.png", "answer_2.png", "answer_20.png", "answer_21.png", "answer_22.png", "answer_23.png", "answer_24.png", "answer_25.png", "answer_26.png", "answer_27.png", "answer_28.png", "answer_29.png", "answer_3.png", "answer_30.png", "answer_31.png", "answer_32.png", "answer_33.png", "answer_34.png", "answer_35.png", "answer_36.png", "answer_37.png", "answer_38.png", "answer_39.png", "answer_4.png", "answer_40.png", "answer_41.png", "answer_42.png", "answer_43.png", "answer_44.png", "answer_45.png", "answer_46.png", "answer_47.png", "answer_48.png", "answer_49.png", "answer_5.png", "answer_50.png", "answer_51.png", "answer_52.png", "answer_53.png", "answer_54.png", "answer_55.png", "answer_56.png", "answer_57.png", "answer_58.png", "answer_59.png", "answer_6.png", "answer_60.png", "answer_61.png", "answer_62.png", "answer_63.png", "answer_64.png", "answer_65.png", "answer_66.png", "answer_67.png", "answer_68.png", "answer_69.png", "answer_7.png", "answer_70.png", "answer_71.png", "answer_72.png", "answer_73.png", "answer_74.png", "answer_75.png", "answer_76.png", "answer_77.png", "answer_78.png", "answer_79.png", "answer_8.png", "answer_80.png", "answer_81.png", "answer_82.png", "answer_83.png", "answer_84.png", "answer_85.png", "answer_86.png", "answer_87.png", "answer_88.png", "answer_89.png", "answer_9.png", "answer_90.png", "answer_91.png", "answer_92.png", "answer_93.png", "answer_94.png", "answer_95.png", "answer_96.png", "answer_97.png", "answer_98.png", "answer_99.png"];
+            let questions = ["question_0.png", "question_1.png", "question_10.png", "question_100.png", "question_101.png", "question_102.png", "question_103.png", "question_104.png", "question_105.png", "question_106.png", "question_107.png", "question_108.png", "question_109.png", "question_11.png", "question_110.png", "question_111.png", "question_112.png", "question_113.png", "question_114.png", "question_115.png", "question_116.png", "question_117.png", "question_118.png", "question_119.png", "question_12.png", "question_120.png", "question_121.png", "question_122.png", "question_123.png", "question_124.png", "question_125.png", "question_126.png", "question_127.png", "question_128.png", "question_129.png", "question_13.png", "question_130.png", "question_131.png", "question_132.png", "question_133.png", "question_134.png", "question_135.png", "question_136.png", "question_137.png", "question_138.png", "question_139.png", "question_14.png", "question_140.png", "question_141.png", "question_142.png", "question_143.png", "question_144.png", "question_145.png", "question_146.png", "question_147.png", "question_148.png", "question_149.png", "question_15.png", "question_150.png", "question_151.png", "question_152.png", "question_153.png", "question_154.png", "question_155.png", "question_156.png", "question_157.png", "question_158.png", "question_159.png", "question_16.png", "question_160.png", "question_161.png", "question_162.png", "question_163.png", "question_164.png", "question_165.png", "question_166.png", "question_167.png", "question_168.png", "question_169.png", "question_17.png", "question_170.png", "question_171.png", "question_172.png", "question_173.png", "question_174.png", "question_175.png", "question_176.png", "question_177.png", "question_178.png", "question_179.png", "question_18.png", "question_180.png", "question_181.png", "question_182.png", "question_183.png", "question_184.png", "question_185.png", "question_186.png", "question_187.png", "question_188.png", "question_189.png", "question_19.png", "question_190.png", "question_191.png", "question_192.png", "question_193.png", "question_194.png", "question_195.png", "question_2.png", "question_20.png", "question_21.png", "question_22.png", "question_23.png", "question_24.png", "question_25.png", "question_26.png", "question_27.png", "question_28.png", "question_29.png", "question_3.png", "question_30.png", "question_31.png", "question_32.png", "question_33.png", "question_34.png", "question_35.png", "question_36.png", "question_37.png", "question_38.png", "question_39.png", "question_4.png", "question_40.png", "question_41.png", "question_42.png", "question_43.png", "question_44.png", "question_45.png", "question_46.png", "question_47.png", "question_48.png", "question_49.png", "question_5.png", "question_50.png", "question_51.png", "question_52.png", "question_53.png", "question_54.png", "question_55.png", "question_56.png", "question_57.png", "question_58.png", "question_59.png", "question_6.png", "question_60.png", "question_61.png", "question_62.png", "question_63.png", "question_64.png", "question_65.png", "question_66.png", "question_67.png", "question_68.png", "question_69.png", "question_7.png", "question_70.png", "question_71.png", "question_72.png", "question_73.png", "question_74.png", "question_75.png", "question_76.png", "question_77.png", "question_78.png", "question_79.png", "question_8.png", "question_80.png", "question_81.png", "question_82.png", "question_83.png", "question_84.png", "question_85.png", "question_86.png", "question_87.png", "question_88.png", "question_89.png", "question_9.png", "question_90.png", "question_91.png", "question_92.png", "question_93.png", "question_94.png", "question_95.png", "question_96.png", "question_97.png", "question_98.png", "question_99.png"];
+            let dir = "../assets/img/questionnaire-mibi/";
+            return questions.map(function(e, i) {
+               return new Question(dir + e, dir + answers[i]);
+            });
+        }
+
+        constructor(imgQuestion, imgAnswer) {
+            this.imgQuestion = imgQuestion;
+            this.imgAnswer = imgAnswer;
+        }
+
+        showQuestion() {
+            $("#question").attr("src", this.imgQuestion);
+            $("#answer").attr("src", "");
+        }
+
+        showAnswer() {
+            $("#question").attr("src", this.imgQuestion);
+            $("#answer").attr("src", this.imgAnswer);
+        }
+    }
+
+    /**
+     * Shuffles array in place.
+     * @param {Array} a items An array containing the items.
+     */
+    function shuffle(a) {
+        var j, x, i;
+        for (i = a.length - 1; i > 0; i--) {
+            j = Math.floor(Math.random() * (i + 1));
+            x = a[i];
+            a[i] = a[j];
+            a[j] = x;
+        }
+        return a;
+    }
+
+    let questions = shuffle(Question.all());
+    let current = 0;
+    questions[current].showQuestion();
+
+    function showNextQuestion() {
+        current = (current + 1) % questions.length;
+        questions[current].showQuestion();
+    }
+
+    function showAnswer() {
+        questions[current].showAnswer();
+    }
+
+</script>
