@@ -1,0 +1,161 @@
+<link href="../assets/css/bootstrap.min.css" rel="stylesheet">
+<link href="../assets/css/philippmatthes.css" rel="stylesheet">
+<link href="../assets/css/roboto.css" rel="stylesheet">
+
+<body style="width: 100%; height: 100%; border-radius: 5px;" class="bg-dark">
+
+<div style="position: fixed; bottom: 10px; right: 10px;">
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="quizMaster.rateAndDismissQuestion('p')"
+            class="btn btn-xl btn-dark rounded-pill bg-green border-animation">
+        <span class="badge badge-pill badge-dark" id="passed">0</span>  Weiß ich
+    </button>
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="quizMaster.rateAndDismissQuestion('h')"
+            class="btn btn-xl btn-dark rounded-pill bg-yellow border-animation">
+       <span class="badge badge-pill badge-dark" id="half-passed">0</span>  Meh...
+    </button>
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="quizMaster.rateAndDismissQuestion('f')"
+            class="btn btn-xl btn-dark rounded-pill bg-red border-animation">
+        <span class="badge badge-pill badge-dark" id="failed">0</span>  Kein Plan
+    </button>
+    <button style="display: inline-block; margin-top: 20px;"
+            onclick="quizMaster.showAnswer()"
+            class="btn btn-xl btn-dark rounded-pill bg-black border-animation">Antwort zeigen</button>
+</div>
+
+<div style="margin: 20px 20px 100px; background-color: white; border-radius: 5px; border-width: 5px; border-style: solid;" id="question-background">
+    <img id="question"
+     style="display: block; margin-left:auto; margin-right:auto; max-width: 100%; max-height: 30%; padding-top: 20px; border-radius: 5px;"
+     src="">
+
+<img id="answer"
+     style="display: block; margin-left:auto; margin-right:auto; max-width: 100%; max-height: 60%; padding-top: 20px; border-radius: 5px;"
+     src="">
+</div>
+
+</body>
+
+
+<script src="../assets/js/jquery-3.3.1.min.js"></script>
+<script src="../assets/js/js.cookie-2.2.0.min.js"></script>
+<script src="../assets/js/rusha.min.js"></script>
+<script src="../assets/js/bootstrap.min.js"></script>
+<script>
+
+    class Quizmaster {
+        constructor() {
+            this.questionnaire = Quizmaster.shuffle(Question.all());
+            this.current = 0;
+            this.showNextQuestion();
+            this.updateRatingButtons();
+        }
+
+        get currentQuestion() {
+            return new InflatableQuestion(this.questionnaire[this.current]);
+        }
+
+        rateAndDismissQuestion(rating) {
+            this.currentQuestion.rate(rating);
+            this.questionnaire[this.current].rating = rating;
+            this.updateRatingButtons();
+            this.showNextQuestion();
+            this.updateRatingButtons();
+        }
+
+        updateRatingButtons() {
+            $("#passed").text(this.questionnaire.filter(q => q.rating === "p").length);
+            $("#half-passed").text(this.questionnaire.filter(q => q.rating === "h").length);
+            $("#failed").text(this.questionnaire.filter(q => q.rating === "f").length);
+        }
+
+        showNextQuestion() {
+            this.current = (this.current + 1) % this.questionnaire.length;
+            let question = this.questionnaire[this.current];
+            new InflatableQuestion(question).showQuestion();
+        }
+
+        showAnswer() {
+            let question = this.questionnaire[this.current];
+            new InflatableQuestion(question).showAnswer();
+        }
+
+        /**
+         * Shuffles array in place.
+         * @param {Array} a items An array containing the items.
+         */
+        static shuffle(a) {
+            let j, x, i;
+            for (i = a.length - 1; i > 0; i--) {
+                j = Math.floor(Math.random() * (i + 1));
+                x = a[i];
+                a[i] = a[j];
+                a[j] = x;
+            }
+            return a;
+        }
+    }
+
+    class Question {
+
+        static all() {
+            let answers = ["a_gentech_0.png", "a_gentech_1.png", "a_gentech_10.png", "a_gentech_11.png", "a_gentech_12.png", "a_gentech_13.png", "a_gentech_14.png", "a_gentech_15.png", "a_gentech_16.png", "a_gentech_17.png", "a_gentech_18.png", "a_gentech_19.png", "a_gentech_2.png", "a_gentech_20.png", "a_gentech_21.png", "a_gentech_22.png", "a_gentech_23.png", "a_gentech_24.png", "a_gentech_25.png", "a_gentech_26.png", "a_gentech_27.png", "a_gentech_28.png", "a_gentech_29.png", "a_gentech_3.png", "a_gentech_30.png", "a_gentech_31.png", "a_gentech_32.png", "a_gentech_33.png", "a_gentech_34.png", "a_gentech_35.png", "a_gentech_36.png", "a_gentech_37.png", "a_gentech_38.png", "a_gentech_39.png", "a_gentech_4.png", "a_gentech_40.png", "a_gentech_41.png", "a_gentech_42.png", "a_gentech_43.png", "a_gentech_44.png", "a_gentech_45.png", "a_gentech_46.png", "a_gentech_47.png", "a_gentech_48.png", "a_gentech_49.png", "a_gentech_5.png", "a_gentech_50.png", "a_gentech_51.png", "a_gentech_52.png", "a_gentech_53.png", "a_gentech_54.png", "a_gentech_55.png", "a_gentech_56.png", "a_gentech_57.png", "a_gentech_58.png", "a_gentech_59.png", "a_gentech_6.png", "a_gentech_60.png", "a_gentech_61.png", "a_gentech_62.png", "a_gentech_63.png", "a_gentech_64.png", "a_gentech_65.png", "a_gentech_66.png", "a_gentech_67.png", "a_gentech_68.png", "a_gentech_69.png", "a_gentech_7.png", "a_gentech_70.png", "a_gentech_71.png", "a_gentech_72.png", "a_gentech_73.png", "a_gentech_74.png", "a_gentech_75.png", "a_gentech_76.png", "a_gentech_77.png", "a_gentech_78.png", "a_gentech_8.png", "a_gentech_9.png"];
+            let questions = ["q_gentech_0.png", "q_gentech_1.png", "q_gentech_10.png", "q_gentech_11.png", "q_gentech_12.png", "q_gentech_13.png", "q_gentech_14.png", "q_gentech_15.png", "q_gentech_16.png", "q_gentech_17.png", "q_gentech_18.png", "q_gentech_19.png", "q_gentech_2.png", "q_gentech_20.png", "q_gentech_21.png", "q_gentech_22.png", "q_gentech_23.png", "q_gentech_24.png", "q_gentech_25.png", "q_gentech_26.png", "q_gentech_27.png", "q_gentech_28.png", "q_gentech_29.png", "q_gentech_3.png", "q_gentech_30.png", "q_gentech_31.png", "q_gentech_32.png", "q_gentech_33.png", "q_gentech_34.png", "q_gentech_35.png", "q_gentech_36.png", "q_gentech_37.png", "q_gentech_38.png", "q_gentech_39.png", "q_gentech_4.png", "q_gentech_40.png", "q_gentech_41.png", "q_gentech_42.png", "q_gentech_43.png", "q_gentech_44.png", "q_gentech_45.png", "q_gentech_46.png", "q_gentech_47.png", "q_gentech_48.png", "q_gentech_49.png", "q_gentech_5.png", "q_gentech_50.png", "q_gentech_51.png", "q_gentech_52.png", "q_gentech_53.png", "q_gentech_54.png", "q_gentech_55.png", "q_gentech_56.png", "q_gentech_57.png", "q_gentech_58.png", "q_gentech_59.png", "q_gentech_6.png", "q_gentech_60.png", "q_gentech_61.png", "q_gentech_62.png", "q_gentech_63.png", "q_gentech_64.png", "q_gentech_65.png", "q_gentech_66.png", "q_gentech_67.png", "q_gentech_68.png", "q_gentech_69.png", "q_gentech_7.png", "q_gentech_70.png", "q_gentech_71.png", "q_gentech_72.png", "q_gentech_73.png", "q_gentech_74.png", "q_gentech_75.png", "q_gentech_76.png", "q_gentech_77.png", "q_gentech_78.png", "q_gentech_8.png", "q_gentech_9.png"];
+            let dir = "../assets/gentech/";
+            return questions.map(function(e, i) {
+               return new Question(dir + e, dir + answers[i]);
+            });
+        }
+
+        constructor(imgQuestion, imgAnswer) {
+            this.imgQ = imgQuestion;
+            this.imgA = imgAnswer;
+
+            this.id = rusha.digest(this.imgQ + this.imgA);
+            let rating = Cookies.get(this.id);
+            if (rating === undefined) {
+                rating = "f";
+            }
+            this.rating = rating;
+        }
+
+        showQuestion() {
+            $("#question").attr("src", this.imgQ);
+            $("#answer").attr("src", "");
+            let background = $("#question-background");
+            background.removeClass();
+            if (this.rating === "f") {
+                background.addClass("border-red");
+            } else if (this.rating === "h") {
+                background.addClass("border-yellow");
+            } else if (this.rating === "p") {
+                background.addClass("border-green");
+            }
+        }
+
+        showAnswer() {
+            $("#question").attr("src", this.imgQ);
+            $("#answer").attr("src", this.imgA);
+        }
+
+        rate(rating) {
+            this.rating = rating;
+            return Cookies.set(this.id, rating);
+        }
+
+        eat() {
+            Cookies.remove(this.id);
+        }
+    }
+
+    class InflatableQuestion extends Question {
+        constructor(jsonOrQuestion) {
+            super(jsonOrQuestion.imgQ, jsonOrQuestion.imgA);
+        }
+    }
+
+    let rusha = new Rusha();
+    let quizMaster = new Quizmaster();
+
+</script>
